@@ -118,7 +118,8 @@ function Main {
     Write-Pink "╚════════════════════════════════════════╝"
     Write-Host ""
 
-    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    # 使用 $PSScriptRoot 或当前目录
+    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Get-Location }
     $keywordFile = Join-Path $scriptDir "keyword.conf"
 
     # 检查关键词文件
