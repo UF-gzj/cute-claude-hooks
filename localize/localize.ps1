@@ -1,5 +1,5 @@
-# localize.ps1 - Claude Code 界面汉化脚本 (Windows PowerShell)
-# 来源: 基于 mine-auto-cli (https://github.com/biaov/mine-auto-cli) 改进
+# localize.ps1 - Claude Code Interface Localization Script (Windows PowerShell)
+# Source: Based on mine-auto-cli (https://github.com/biaov/mine-auto-cli)
 # License: MIT
 
 param(
@@ -7,20 +7,22 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# ========== 颜色函数 ==========
+# ========== Color Functions ==========
 function Write-Pink { param($text) Write-Host $text -ForegroundColor Magenta }
 function Write-Green { param($text) Write-Host $text -ForegroundColor Green }
 function Write-Red { param($text) Write-Host $text -ForegroundColor Red }
 function Write-Yellow { param($text) Write-Host $text -ForegroundColor Yellow }
 
-# ========== 获取 Claude Code CLI 路径 ==========
+# ========== Get Claude Code CLI Path ==========
 function Get-CliPath {
     $pkgname = "@anthropic-ai/claude-code"
     $npmRoot = npm root -g 2>$null
 
     if (-not $npmRoot) {
-        Write-Red "❌ 无法获取 npm 全局目录"
+        Write-Red "ERROR: Cannot get npm global directory"
         exit 1
     }
 
@@ -28,36 +30,36 @@ function Get-CliPath {
     $cliBak = Join-Path $npmRoot "$pkgname\cli.bak.js"
 
     if (-not (Test-Path $cliPath)) {
-        Write-Red "❌ 未找到 Claude Code CLI，请先安装: npm install -g @anthropic-ai/claude-code"
+        Write-Red "ERROR: Claude Code CLI not found. Please install: npm install -g @anthropic-ai/claude-code"
         exit 1
     }
 
     return @{ Path = $cliPath; Backup = $cliBak }
 }
 
-# ========== 创建备份 ==========
+# ========== Create Backup ==========
 function New-Backup {
     param($cliPath, $cliBak)
 
     if (-not (Test-Path $cliBak)) {
         Copy-Item $cliPath $cliBak
-        Write-Green "✅ 已创建备份: cli.bak.js"
+        Write-Green "OK: Backup created: cli.bak.js"
     } else {
-        Write-Yellow "ℹ️  备份已存在，跳过创建"
+        Write-Yellow "INFO: Backup already exists, skipping"
     }
 }
 
-# ========== 执行汉化 ==========
+# ========== Execute Localization ==========
 function Invoke-Localize {
     param($cliPath, $keywordFile)
 
     $count = 0
     $content = Get-Content $cliPath -Raw -Encoding UTF8
 
-    Write-Pink "🌸 开始汉化 Claude Code..."
+    Write-Pink "Starting Claude Code localization..."
     Write-Host ""
 
-    # 读取关键词配置
+    # Read keyword configuration
     $keywords = Get-Content $keywordFile -Encoding UTF8 | Where-Object {
         $_ -and -not $_.StartsWith("#") -and $_.Contains("|")
     }
@@ -71,10 +73,10 @@ function Invoke-Localize {
 
         if ([string]::IsNullOrEmpty($keyword)) { continue }
 
-        # 转义正则特殊字符
+        # Escape regex special characters
         $escaped = [regex]::Escape($keyword)
 
-        # 替换双引号包裹的字符串
+        # Replace double-quoted strings
         $pattern = "`"$escaped`""
         $replacement = "`"$translation`""
 
@@ -82,58 +84,59 @@ function Invoke-Localize {
             $content = $content -replace $pattern, $replacement
             $count++
             Write-Host "  " -NoNewline
-            Write-Green "✓" -NoNewline
+            Write-Green "OK" -NoNewline
             Write-Host " $keyword " -NoNewline
-            Write-Yellow "→" -NoNewline
+            Write-Yellow "->" -NoNewline
             Write-Host " $translation"
         }
     }
 
-    # 保存文件
-    $content | Set-Content $cliPath -Encoding UTF8 -NoNewline
+    # Save file with UTF8 without BOM
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($cliPath, $content, $utf8NoBom)
 
     Write-Host ""
-    Write-Pink "🌸 汉化完成！共处理 $count 个词条"
-    Write-Yellow "ℹ️  重启 Claude Code 即可生效"
+    Write-Pink "Localization complete! Processed $count entries"
+    Write-Yellow "INFO: Restart Claude Code to take effect"
 }
 
-# ========== 恢复英文 ==========
+# ========== Restore English ==========
 function Restore-English {
     param($cliPath, $cliBak)
 
     if (-not (Test-Path $cliBak)) {
-        Write-Yellow "ℹ️  未找到备份文件，可能未进行过汉化"
+        Write-Yellow "INFO: Backup not found, may not have been localized"
         return
     }
 
     Copy-Item $cliBak $cliPath -Force
-    Write-Green "✅ 已恢复英文界面"
-    Write-Yellow "ℹ️  重启 Claude Code 即可生效"
+    Write-Green "OK: English interface restored"
+    Write-Yellow "INFO: Restart Claude Code to take effect"
 }
 
-# ========== 主函数 ==========
+# ========== Main Function ==========
 function Main {
-    Write-Pink "╔════════════════════════════════════════╗"
-    Write-Pink "║     🌸 Claude Code 界面汉化工具 🌸       ║"
-    Write-Pink "╚════════════════════════════════════════╝"
+    Write-Pink "=============================================="
+    Write-Pink "  Claude Code Interface Localization Tool"
+    Write-Pink "=============================================="
     Write-Host ""
 
-    # 使用 $PSScriptRoot 或当前目录
+    # Use $PSScriptRoot or current directory
     $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Get-Location }
     $keywordFile = Join-Path $scriptDir "keyword.conf"
 
-    # 检查关键词文件
+    # Check keyword file
     if (-not (Test-Path $keywordFile)) {
-        Write-Red "❌ 未找到关键词配置文件: $keywordFile"
+        Write-Red "ERROR: Keyword config file not found: $keywordFile"
         exit 1
     }
 
-    # 获取 CLI 路径
+    # Get CLI path
     $paths = Get-CliPath
     $cliPath = $paths.Path
     $cliBak = $paths.Backup
 
-    Write-Green "📁 Claude Code 路径: $cliPath"
+    Write-Green "Claude Code path: $cliPath"
     Write-Host ""
 
     if ($Restore) {
@@ -141,7 +144,7 @@ function Main {
     } else {
         New-Backup $cliPath $cliBak
 
-        # 从备份恢复后执行汉化
+        # Restore from backup then localize
         if (Test-Path $cliBak) {
             Copy-Item $cliBak $cliPath -Force
         }
