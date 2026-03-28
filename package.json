@@ -1,0 +1,57 @@
+{
+  "name": "cute-claude-hooks",
+  "version": "1.0.0",
+  "description": "🌸 让 Claude Code 拥有完整的中文体验！粉色中文提示 + 界面汉化，专为编程小白设计",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "node -e \"console.log('\\n🌸 感谢安装 cute-claude-hooks! 🌸\\n\\n请运行以下命令完成安装:\\n\\n  Windows: cute-claude-hooks-install\\n  macOS/Linux: cute-claude-hooks-install\\n\\n或查看文档: https://github.com/gugug168/cute-claude-hooks\\n')\"",
+    "uninstall": "node -e \"console.log('\\n🌸 卸载 cute-claude-hooks... 🌸\\n请手动删除 ~/.claude/hooks/tool-tips-post.sh 和 ~/.claude/localize/ 目录\\n')\""
+  },
+  "bin": {
+    "cute-claude-hooks-install": "./bin/install.js",
+    "cute-claude-hooks-restore": "./bin/restore.js"
+  },
+  "files": [
+    "bin/",
+    "localize/",
+    "tool-tips-post.sh",
+    "install.ps1",
+    "install.sh",
+    "install-gitee.ps1",
+    "install-gitee.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "claude-hooks",
+    "chinese",
+    "localization",
+    "i18n",
+    "hooks",
+    "中文",
+    "汉化",
+    "中文提示",
+    "小白",
+    "beginner-friendly"
+  ],
+  "author": "gugug168",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gugug168/cute-claude-hooks.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gugug168/cute-claude-hooks/issues"
+  },
+  "homepage": "https://github.com/gugug168/cute-claude-hooks#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "win32",
+    "darwin",
+    "linux"
+  ]
+}

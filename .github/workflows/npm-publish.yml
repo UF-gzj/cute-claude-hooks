@@ -1,0 +1,45 @@
+name: 📦 Publish to NPM
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.1)'
+        required: false
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 📋 Check package.json
+        run: |
+          echo "📦 Package: $(cat package.json | grep '"name"' | head -1)"
+          echo "📌 Version: $(cat package.json | grep '"version"' | head -1)"
+
+      - name: 🔧 Update version (if specified)
+        if: github.event.inputs.version != ''
+        run: |
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+
+      - name: 📦 Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: ✅ Publish Success
+        run: |
+          echo "🎉 Successfully published to NPM!"
+          echo "📦 Package: https://www.npmjs.com/package/cute-claude-hooks"
+          echo "📖 Install: npm install -g cute-claude-hooks"

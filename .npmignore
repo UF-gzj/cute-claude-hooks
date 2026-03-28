@@ -1,0 +1,26 @@
+# 开发文件
+.github/
+.git/
+*.log
+*.bak
+
+# 测试文件
+test/
+tests/
+*.test.js
+*.spec.js
+
+# 文档图片
+screenshots/
+SCREENSHOTS.md
+
+# 开发配置
+.gitignore
+.eslintrc*
+.prettierrc*
+
+# 临时文件
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
