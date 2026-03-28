@@ -207,13 +207,20 @@ cute-claude-hooks/
 
 本项目使用 GitHub Actions 进行跨平台自动测试：
 
-[![Test Status](https://github.com/gugug168/cute-claude-hooks/workflows/%F0%9F%A7%AA%20%E8%B7%A8%E5%B9%B3%E5%8F%B0%E6%B2%99%E7%9B%92%E6%B5%8B%E8%AF%95/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions)
+[![Test Claude Code Localization](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml)
 
 | 平台 | 状态 | 测试内容 |
 |-----|------|---------|
-| 🐧 Linux | ✅ | Bash 脚本语法 + 沙盒汉化测试 |
-| 🍎 macOS | ✅ | Bash 脚本语法 + 沙盒汉化测试 |
-| 🪟 Windows | ✅ | PowerShell 语法 + 沙盒汉化测试 |
+| 🐧 Linux (Ubuntu) | ✅ 通过 | Hook脚本语法 + 界面汉化 (143词条) |
+| 🍎 macOS | ✅ 通过 | Hook脚本语法 + 界面汉化 (143词条) |
+| 🪟 Windows | ✅ 通过 | Hook脚本语法 + 界面汉化 (143词条) |
+
+### 测试覆盖
+
+- ✅ **工具提示测试** - 验证 Hook 脚本输出粉色中文提示
+- ✅ **界面汉化测试** - 验证 cli.js 成功翻译 143 个词条
+- ✅ **关键词条验证** - 检查"退出"、"帮助"、"清除"、"配置"、"管理"等词条
+- ✅ **备份文件检查** - 确保 cli.bak.js 备份存在
 
 ---
 
