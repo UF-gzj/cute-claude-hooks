@@ -1,5 +1,5 @@
 # cute-claude-hooks 安装脚本 (Windows PowerShell)
-# 使用方法: irm https://raw.githubusercontent.com/your-username/cute-claude-hooks/main/install.ps1 | iex
+# 使用方法: irm https://raw.githubusercontent.com/gugug168/cute-claude-hooks/main/install.ps1 | iex
 # 支持参数: -Mode hooks/localize/all
 
 param(
@@ -20,7 +20,7 @@ function Write-Cyan { param($text) Write-Host $text -ForegroundColor Cyan }
 $HooksDir = "$env:USERPROFILE\.claude\hooks"
 $LocalizeDir = "$env:USERPROFILE\.claude\localize"
 $SettingsFile = "$env:USERPROFILE\.claude\settings.json"
-$ScriptURL = "https://raw.githubusercontent.com/your-username/cute-claude-hooks/main"
+$ScriptURL = "https://raw.githubusercontent.com/gugug168/cute-claude-hooks/main"
 
 # ========== 显示横幅 ==========
 function Show-Banner {
@@ -219,7 +219,7 @@ function Main {
 
     Write-Host ""
     Write-Pink "🌸 感谢使用 Cute Claude Hooks！"
-    Write-Yellow "📖 完整文档: https://github.com/your-username/cute-claude-hooks"
+    Write-Yellow "📖 完整文档: https://github.com/gugug168/cute-claude-hooks"
 }
 
 Main

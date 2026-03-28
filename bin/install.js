@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * 🌸 Cute Claude Hooks - NPM 安装脚本
- * 让 Claude Code 拥有完整的中文体验！
+ * Cute Claude Hooks - NPM Install Script
+ * Safe localization and tool tips for Claude Code
+ * License: MIT
  */
 
 const fs = require('fs');
@@ -15,43 +16,50 @@ const GREEN = '\x1b[0;32m';
 const YELLOW = '\x1b[0;33m';
 const NC = '\x1b[0m';
 
-console.log(`\n${MAGENTA}╔══════════════════════════════════════════╗${NC}`);
-console.log(`${MAGENTA}║     🌸 Cute Claude Hooks 安装程序 🌸    ║${NC}`);
-console.log(`${MAGENTA}║     让 Claude Code 更可爱、更易用！      ║${NC}`);
-console.log(`${MAGENTA}╚══════════════════════════════════════════╝${NC}\n`);
+console.log(`\n${MAGENTA}==============================================${NC}`);
+console.log(`${MAGENTA}     Cute Claude Hooks Installer${NC}`);
+console.log(`${MAGENTA}==============================================${NC}\n`);
 
-// 获取用户主目录
+// Get user home directory
 const homeDir = os.homedir();
 const claudeDir = path.join(homeDir, '.claude');
 const hooksDir = path.join(claudeDir, 'hooks');
 const localizeDir = path.join(claudeDir, 'localize');
 
-// 获取 npm 包目录
-const npmDir = path.dirname(require.resolve('cute-claude-hooks/package.json'));
+// Get npm package directory
+let npmDir;
+try {
+  npmDir = path.dirname(require.resolve('cute-claude-hooks/package.json'));
+} catch (e) {
+  // Fallback: use script's own directory
+  npmDir = path.resolve(__dirname, '..');
+}
 
-console.log(`${GREEN}📁 安装目录: ${npmDir}${NC}\n`);
+console.log(`${GREEN}Package dir: ${npmDir}${NC}\n`);
 
-// 创建目录
+// Create directory
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    console.log(`${GREEN}✅ 创建目录: ${dir}${NC}`);
+    console.log(`${GREEN}Created: ${dir}${NC}`);
   }
 }
 
-// 复制文件
+// Copy file
 function copyFile(src, dest) {
   try {
     fs.copyFileSync(src, dest);
-    console.log(`${GREEN}✅ 复制文件: ${path.basename(dest)}${NC}`);
+    console.log(`${GREEN}Copied: ${path.basename(dest)}${NC}`);
+    return true;
   } catch (err) {
-    console.log(`${YELLOW}⚠️ 复制失败: ${path.basename(dest)}${NC}`);
+    console.log(`${YELLOW}Copy failed: ${path.basename(dest)} - ${err.message}${NC}`);
+    return false;
   }
 }
 
-// 安装 Hook
+// ========== Install Hook ==========
 function installHook() {
-  console.log(`${MAGENTA}📦 安装工具提示 Hook...${NC}\n`);
+  console.log(`${MAGENTA}Installing tool tips hook...${NC}\n`);
 
   ensureDir(hooksDir);
 
@@ -61,7 +69,7 @@ function installHook() {
   if (fs.existsSync(hookSrc)) {
     copyFile(hookSrc, hookDest);
 
-    // 设置执行权限 (Unix only)
+    // Set execute permission (Unix only)
     if (process.platform !== 'win32') {
       try {
         fs.chmodSync(hookDest, '755');
@@ -69,12 +77,12 @@ function installHook() {
     }
   }
 
-  // 更新 settings.json
+  // Update settings.json
   const settingsFile = path.join(claudeDir, 'settings.json');
   updateSettings(settingsFile, hookDest);
 }
 
-// 更新 settings.json
+// ========== Update settings.json ==========
 function updateSettings(settingsFile, hookPath) {
   let settings = {};
 
@@ -82,7 +90,7 @@ function updateSettings(settingsFile, hookPath) {
     try {
       settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
     } catch (err) {
-      console.log(`${YELLOW}⚠️ 无法读取 settings.json${NC}`);
+      console.log(`${YELLOW}Warning: Cannot read settings.json${NC}`);
     }
   }
 
@@ -95,9 +103,12 @@ function updateSettings(settingsFile, hookPath) {
   );
 
   if (!exists) {
+    // Use 'sh' instead of 'bash' for better cross-platform compatibility
+    // On Windows, Git Bash provides 'sh'; on Unix, 'sh' is always available
+    const normalizedPath = hookPath.replace(/\\/g, '/');
     const hookCommand = process.platform === 'win32'
-      ? `bash "${hookPath.replace(/\\/g, '/')}"`
-      : `bash ${hookPath}`;
+      ? `sh "${normalizedPath}"`
+      : `bash "${normalizedPath}"`;
 
     settings.hooks.PostToolUse.push({
       matcher: matcher,
@@ -109,23 +120,32 @@ function updateSettings(settingsFile, hookPath) {
 
     try {
       fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
-      console.log(`${GREEN}✅ 更新配置: settings.json${NC}`);
+      console.log(`${GREEN}Updated: settings.json${NC}`);
     } catch (err) {
-      console.log(`${YELLOW}⚠️ 无法更新 settings.json${NC}`);
+      console.log(`${YELLOW}Warning: Cannot update settings.json - ${err.message}${NC}`);
     }
   } else {
-    console.log(`${YELLOW}ℹ️ Hook 已配置，跳过${NC}`);
+    console.log(`${YELLOW}Info: Hook already configured, skipping${NC}`);
   }
 }
 
-// 安装汉化
+// ========== Install Localization ==========
 function installLocalize() {
-  console.log(`\n${MAGENTA}📦 安装界面汉化...${NC}\n`);
+  console.log(`\n${MAGENTA}Installing localization...${NC}\n`);
 
   ensureDir(localizeDir);
 
   const localizeSrcDir = path.join(npmDir, 'localize');
-  const files = ['keyword.conf', 'localize.sh', 'localize.ps1', 'restore.sh', 'restore.ps1'];
+  // Include localize.js (the new safe engine) plus all other files
+  const files = [
+    'keyword.conf',
+    'localize.js',    // NEW: Safe Node.js localization engine
+    'localize.sh',
+    'localize.ps1',
+    'localize.py',
+    'restore.sh',
+    'restore.ps1'
+  ];
 
   files.forEach(file => {
     const src = path.join(localizeSrcDir, file);
@@ -133,8 +153,8 @@ function installLocalize() {
     if (fs.existsSync(src)) {
       copyFile(src, dest);
 
-      // 设置执行权限 (Unix only)
-      if (process.platform !== 'win32' && (file.endsWith('.sh'))) {
+      // Set execute permission (Unix only)
+      if (process.platform !== 'win32' && file.endsWith('.sh')) {
         try {
           fs.chmodSync(dest, '755');
         } catch (err) {}
@@ -142,10 +162,19 @@ function installLocalize() {
     }
   });
 
-  // 执行汉化
-  console.log(`\n${MAGENTA}🌸 执行界面汉化...${NC}`);
+  // Execute localization - prefer Node.js engine (safest)
+  console.log(`\n${MAGENTA}Running localization...${NC}`);
 
   try {
+    // Strategy 1: Use Node.js localize.js (safe description-only replacement)
+    const jsScript = path.join(localizeDir, 'localize.js');
+    if (fs.existsSync(jsScript)) {
+      console.log(`${GREEN}Using safe Node.js localization engine${NC}`);
+      execSync(`node "${jsScript}"`, { stdio: 'inherit' });
+      return;
+    }
+
+    // Strategy 2: Fallback to shell scripts
     if (process.platform === 'win32') {
       const psScript = path.join(localizeDir, 'localize.ps1');
       if (fs.existsSync(psScript)) {
@@ -158,13 +187,13 @@ function installLocalize() {
       }
     }
   } catch (err) {
-    console.log(`${YELLOW}⚠️ 汉化执行遇到问题，请手动运行${NC}`);
+    console.log(`${YELLOW}Warning: Localization encountered an issue${NC}`);
+    console.log(`${YELLOW}You can run it manually: node ~/.claude/localize/localize.js${NC}`);
   }
 }
 
-// 主函数
+// ========== Main ==========
 function main() {
-  // 选择安装模式
   const args = process.argv.slice(2);
   const mode = args[0] || 'all';
 
@@ -185,9 +214,9 @@ function main() {
       break;
   }
 
-  console.log(`\n${MAGENTA}🌸 安装完成！${NC}`);
-  console.log(`${YELLOW}📖 文档: https://github.com/gugug168/cute-claude-hooks${NC}`);
-  console.log(`${YELLOW}💡 重启 Claude Code 即可生效${NC}\n`);
+  console.log(`\n${MAGENTA}Installation complete!${NC}`);
+  console.log(`${YELLOW}Docs: https://github.com/gugug168/cute-claude-hooks${NC}`);
+  console.log(`${YELLOW}Restart Claude Code to take effect${NC}\n`);
 }
 
 main();

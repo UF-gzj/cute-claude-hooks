@@ -1,6 +1,6 @@
 #!/bin/bash
 # cute-claude-hooks 安装脚本 (macOS/Linux)
-# 使用方法: curl -fsSL https://raw.githubusercontent.com/your-username/cute-claude-hooks/main/install.sh | bash
+# 使用方法: curl -fsSL https://raw.githubusercontent.com/gugug168/cute-claude-hooks/main/install.sh | bash
 # 支持参数: bash install.sh [1-4]
 
 set -e
@@ -17,7 +17,7 @@ NC='\033[0m'
 HOOKS_DIR="$HOME/.claude/hooks"
 LOCALIZE_DIR="$HOME/.claude/localize"
 SETTINGS_FILE="$HOME/.claude/settings.json"
-SCRIPT_URL="https://raw.githubusercontent.com/your-username/cute-claude-hooks/main"
+SCRIPT_URL="https://raw.githubusercontent.com/gugug168/cute-claude-hooks/main"
 
 # ========== 显示横幅 ==========
 show_banner() {
@@ -247,7 +247,7 @@ main() {
 
     echo ""
     echo -e "${MAGENTA}🌸 感谢使用 Cute Claude Hooks！${NC}"
-    echo -e "${YELLOW}📖 完整文档: https://github.com/your-username/cute-claude-hooks${NC}"
+    echo -e "${YELLOW}📖 完整文档: https://github.com/gugug168/cute-claude-hooks${NC}"
 }
 
 main "$@"
