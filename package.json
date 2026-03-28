@@ -1,6 +1,6 @@
 {
   "name": "cute-claude-hooks",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "🌸 让 Claude Code 拥有完整的中文体验！粉色中文提示 + 界面汉化，专为编程小白设计",
   "main": "index.js",
   "scripts": {
