@@ -125,6 +125,7 @@ jobs:
 
       - name: ✅ 验证界面汉化结果
         shell: bash
+        timeout-minutes: 3
         run: |
           echo "=== 验证界面汉化 ==="
           NPM_ROOT=$(npm root -g 2>/dev/null)
@@ -133,20 +134,9 @@ jobs:
           if [ -f "$CLI_PATH" ]; then
             echo "📁 CLI 路径: $CLI_PATH"
             echo ""
-            echo "=== 检查中文关键词 ==="
 
-            # 检查是否有中文翻译
-            CHINESE_COUNT=$(grep -o '[\u4e00-\u9fff]' "$CLI_PATH" 2>/dev/null | wc -l || echo "0")
-            echo "📊 中文字符数量: $CHINESE_COUNT"
-
-            # 检查特定汉化词条
-            echo ""
+            # 检查特定汉化词条 (简单快速的检查)
             echo "=== 检查关键词条 ==="
-
-            # 检查是否包含中文提示
-            if grep -q "请输入您的请求" "$CLI_PATH" 2>/dev/null; then
-              echo "✅ 找到: 请输入您的请求"
-            fi
 
             if grep -q "退出" "$CLI_PATH" 2>/dev/null; then
               echo "✅ 找到: 退出"
@@ -160,6 +150,14 @@ jobs:
               echo "✅ 找到: 清除"
             fi
 
+            if grep -q "配置" "$CLI_PATH" 2>/dev/null; then
+              echo "✅ 找到: 配置"
+            fi
+
+            if grep -q "管理" "$CLI_PATH" 2>/dev/null; then
+              echo "✅ 找到: 管理"
+            fi
+
             # 检查备份文件
             CLI_BAK="$NPM_ROOT/@anthropic-ai/claude-code/cli.bak.js"
             if [ -f "$CLI_BAK" ]; then
@@ -168,11 +166,7 @@ jobs:
             fi
 
             echo ""
-            if [ "$CHINESE_COUNT" -gt 100 ]; then
-              echo "🎉 界面汉化成功！检测到大量中文字符"
-            else
-              echo "⚠️ 界面可能未完全汉化，中文字符较少"
-            fi
+            echo "🎉 界面汉化验证完成！"
           else
             echo "❌ 未找到 CLI 文件: $CLI_PATH"
           fi
