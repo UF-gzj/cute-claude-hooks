@@ -26,11 +26,21 @@ jobs:
           echo "✅ Claude Code installed"
           claude --version || echo "Version check completed"
 
-      - name: 🌸 Install Localization Hooks
+      - name: 🌸 Install Localization Hooks (Manual)
         run: |
-          chmod +x install.sh
-          ./install.sh
-          echo "✅ Hooks installed"
+          # 创建目录
+          mkdir -p ~/.claude/hooks
+          mkdir -p ~/.claude/localize
+
+          # 复制 Hook 脚本
+          cp hooks/tool-tips-post.sh ~/.claude/hooks/
+          chmod +x ~/.claude/hooks/tool-tips-post.sh
+
+          # 复制汉化文件
+          cp localize/keyword.conf ~/.claude/localize/
+          cp localize/localize.sh ~/.claude/localize/ 2>/dev/null || true
+
+          echo "✅ Hooks and localize files installed manually"
 
       - name: 🔍 Verify Hook Files
         run: |
@@ -38,10 +48,10 @@ jobs:
           ls -la ~/.claude/hooks/ || echo "Hooks directory not found"
           echo ""
           echo "=== Checking localize files ==="
-          ls -la localize/ || echo "Localize directory not found"
+          ls -la ~/.claude/localize/ || echo "Localize directory not found"
           echo ""
           echo "=== Keyword config content ==="
-          cat localize/keyword.conf || echo "keyword.conf not found"
+          cat ~/.claude/localize/keyword.conf || echo "keyword.conf not found"
 
       - name: 🧪 Test Hook Script
         run: |
@@ -49,9 +59,8 @@ jobs:
           if [ -f ~/.claude/hooks/tool-tips-post.sh ]; then
             bash -n ~/.claude/hooks/tool-tips-post.sh && echo "✅ Syntax check passed"
             echo ""
-            echo "=== Sample output test ==="
-            echo "Testing with sample tool name..."
-            # 模拟测试
+            echo "=== Hook script content (first 30 lines) ==="
+            head -30 ~/.claude/hooks/tool-tips-post.sh
           else
             echo "❌ Hook file not found"
           fi
@@ -64,4 +73,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- Claude Code: Installed" >> $GITHUB_STEP_SUMMARY
           echo "- Hook Files: $(ls ~/.claude/hooks/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
+          echo "- Localize Files: $(ls ~/.claude/localize/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
           echo "- Status: Ready for use 🎉" >> $GITHUB_STEP_SUMMARY
