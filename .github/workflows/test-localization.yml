@@ -7,71 +7,133 @@ on:
     branches: [master]
   workflow_dispatch:  # 允许手动触发
 
-jobs:
-  test-localization:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: 🔧 Install Claude Code
-        run: |
-          npm install -g @anthropic-ai/claude-code
-          echo "✅ Claude Code installed"
-          claude --version || echo "Version check completed"
-
-      - name: 🌸 Install Localization Hooks (Manual)
-        run: |
-          # 创建目录
-          mkdir -p ~/.claude/hooks
-          mkdir -p ~/.claude/localize
-
-          # 复制 Hook 脚本 (文件在根目录)
-          cp tool-tips-post.sh ~/.claude/hooks/
-          chmod +x ~/.claude/hooks/tool-tips-post.sh
-
-          # 复制汉化文件
-          cp localize/keyword.conf ~/.claude/localize/
-          cp localize/localize.sh ~/.claude/localize/ 2>/dev/null || true
-
-          echo "✅ Hooks and localize files installed manually"
-
-      - name: 🔍 Verify Hook Files
-        run: |
-          echo "=== Checking hook files ==="
-          ls -la ~/.claude/hooks/ || echo "Hooks directory not found"
-          echo ""
-          echo "=== Checking localize files ==="
-          ls -la ~/.claude/localize/ || echo "Localize directory not found"
-          echo ""
-          echo "=== Keyword config content ==="
-          cat ~/.claude/localize/keyword.conf || echo "keyword.conf not found"
-
-      - name: 🧪 Test Hook Script
-        run: |
-          echo "=== Testing tool-tips-post.sh ==="
-          if [ -f ~/.claude/hooks/tool-tips-post.sh ]; then
-            bash -n ~/.claude/hooks/tool-tips-post.sh && echo "✅ Syntax check passed"
-            echo ""
-            echo "=== Hook script content (first 30 lines) ==="
-            head -30 ~/.claude/hooks/tool-tips-post.sh
-          else
-            echo "❌ Hook file not found"
-          fi
-
-      - name: 📋 Generate Test Report
-        run: |
-          echo "## 🌸 Localization Test Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Claude Code: Installed" >> $GITHUB_STEP_SUMMARY
-          echo "- Hook Files: $(ls ~/.claude/hooks/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
-          echo "- Localize Files: $(ls ~/.claude/localize/ 2>/dev/null | wc -l) files" >> $GITHUB_STEP_SUMMARY
-          echo "- Status: Ready for use 🎉" >> $GITHUB_STEP_SUMMARY
+9-
+10	jobs:
+11  test-localization:
+12    runs-on: ubuntu-latest
+13
+14    steps:
+15      - name: 📥 Checkout repository
+16        uses: actions/checkout@v4
+17
+18      - name: 📦 Setup Node.js
+19        uses: actions/setup-node@v4
+20        with:
+21          node-version: '20'
+22
+23      - name: 🔧 Install Claude Code
+24        run: |
+25          npm install -g @anthropic-ai/claude-code
+26          echo "✅ Claude Code installed"
+27          claude --version || echo "Version check completed"
+28
+29      - name: 🌸 Install Localization Hooks (Manual)
+30        run: |
+31          # 创建目录
+32          mkdir -p ~/.claude/hooks
+33          mkdir -p ~/.claude/localize
+34
+35          # 复制 Hook 脚本 (文件在根目录)
+36          cp tool-tips-post.sh ~/.claude/hooks/
+37          chmod +x ~/.claude/hooks/tool-tips-post.sh
+38
+39          # 复制汉化文件
+40          cp localize/keyword.conf ~/.claude/localize/
+41          cp localize/localize.sh ~/.claude/localize/ 2>/dev/null || true
+42
+43          echo "✅ Hooks and localize files installed manually"
+44
+45      - name: 🔍 Verify Hook Files
+46        run: |
+47          echo "=== Checking hook files ==="
+48          ls -la ~/.claude/hooks/ || echo "Hooks directory found"
+49          echo ""
+50          echo "=== Checking localize files ==="
+51          ls -la ~/.claude/localize/ || echo "Localize directory not found"
+52          echo ""
+53          echo "=== Keyword config content ==="
+54          cat ~/.claude/localize/keyword.conf || echo "keyword.conf not found"
+55
+56      - name: 🧪 Test Hook Script
+57        run: |
+58          echo "=== Testing tool-tips-post.sh ==="
+59          if [ -f ~/.claude/hooks/tool-tips-post.sh ]; then
+60            bash -n ~/.claude/hooks/tool-tips-post.sh && echo "✅ Syntax check passed"
+61          else
+62            echo "❌ Hook file not found"
+63            exit 1
+64          fi
+65
+66      - name: 🌸 Test Hook Output (中文提示)
+67        run: |
+68          echo "=== 模拟 Hook 输入测试 ==="
+69
+70          # 测试 Read 工具
+          echo '{"tool_name": "Read", "file_path": "/test/example.py"}' | bash ~/.claude/hooks/tool-tips-post.sh
+71
+72          # 测试 Write 工具
+          echo '{"tool_name": "Write", "file_path": "/test/newfile.js"}' | bash ~/.claude/hooks/tool-tips-post.sh
+73         74          # 测试 Edit 工具
+          echo '{"tool_name": "Edit", "file_path": "/src/config.json"}' | bash ~/.claude/hooks/tool-tips-post.sh
+75           76          # 测试 Bash 工具 (带描述)
+          echo '{"tool_name": "Bash", "command": "npm install", "description": "安装依赖"}' | bash ~/.claude/hooks/tool-tips-post.sh
+78           79          # 测试 Glob 工具
+          echo '{"tool_name": "Glob", "pattern": "**/*.ts"}' | bash ~/.claude/hooks/tool-tips-post.sh
+81           82          # 测试 Grep 工具
+          echo '{"tool_name": "Grep", "pattern": "function"}' | bash ~/.claude/hooks/tool-tips-post.sh
+83           84          echo ""
+          echo "✅ Hook 中文提示测试完成!"
+85
+86      - name: 🌐 Test interface Localization (界面汉化测试)
+87        run: |
+88          # 运行汉化脚本
+89          bash "$LOCALize_script_path"
+90          echo ""
+91          echo -e "${GREEN}✅ 运行汉化脚本: $localize_script_path"
+92
+ echo ""
+93 echo "=== 磀查汉化结果 ==="
+94
+ # 显示翻译数量
+95 translation_count=$(grep -c "^[^#]"" ~/.claude/localize/keyword.conf | wc -l)
+96 echo "翻译了 $translation_count 个关键词"
+97
+98 if [ "$translation_count" -gt 0 ]; then
+99   echo -e "${RED}❌ 没有任何翻译"
+100   exit 1
+101         fi
+102
+103       echo ""
+104       echo -e "${GREEN}✅ 汉化完成!${NC}"
+105         echo -e "${YELLOW}ℹ️  备份文件不存在，跳过汉化验证步骤"
+106       else
+107           echo -=== 查看汉化后内容 ==="
+108           # 查看文件前几行是否有翻译
+109           grep -q "\"Checking for updates" "$cli_path" | head -5 && echo -    没有找到更新"
+110           else
+111               echo -e "${GREEN}✅ 已应用翻译${NC}"
+112             fi
+113         # 显示汉化后与原始版本的对比
+114         # 汉化前
+115         diff < <(原始文件内容, <(汉化后内容) || true
+116         echo -e "${RED}原始内容:${NC}"
+117         # 找到被替换的内容
+118         grep -E "AvailableTools|AutoDownloadUpdates" "$cli_path" | grep -o "自动下载更新" "$cli_path" || echo -    没有找到"AutoDownloadUpdates"
+119         else
+120               echo -e "${GREEN}✅ 界面汉化测试完成!${NC}"
+121         echo ""
+122         echo -e "${MAGENTA}🌸 汉后输出"测试完成!${NC}"
+123
+ echo -e "${MAGENTA}🌸 汉后输出"测试完成!${MAGENTA}🌸 汉后输出"测试完成!${NC}"
+124         echo ""
+125         echo -e "${MAGENTA}🌸 汉后输出"测试完成报告"
+126         run: |
+127          echo "## 🌸 Localization Test Report" >> $GITHUB_STEP_SUMMARY
+128          echo "" >> $GITHUB_STEP_summary
+129          echo "### ✅ Test Results" >> $GITHUB_step_summary
+130          echo "" >> $GITHUB_step_summary
+131          echo "- Claude Code: Installed" >> $GITHUB_step_summary
+132          echo "- Hook Files: $(ls ~/.claude/hooks/ 2>/dev/null | wc -l) files" >> $GITHUB_step_summary
+133          echo "- Localize Files: $(ls ~/.claude/localize/ 2>/dev/null | wc -l) files" >> $GITHUB_step_summary
+134          echo "- Status: Ready for use 🎉" >> $GITHUB_step_summary
+135
