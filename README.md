@@ -13,14 +13,17 @@
 
 每个 Claude Code 执行的操作都会显示粉色中文提示，让你清楚知道它在做什么：
 
-```
-🌸 小白提示：🔐 检查 GitHub 登录状态（看是否已登录、登录的是哪个账号） 🌸
-🌸 小白提示：🚀 列出 GitHub Actions 运行记录（查看自动化测试历史） 🌸
-🌸 小白提示：📦 安装依赖包（下载项目所需的库） 🌸
-🌸 小白提示：📚 查看提交日志（看所有修改记录） 🌸
-```
+![工具提示详细效果](./screenshots/03-tool-tips-detailed.png)
+
+![工具提示带翻译效果](./screenshots/03-tool-tips-with-translation.png)
 
 ### 🌐 界面汉化效果
+
+![配置面板中文效果](./screenshots/02-config-chinese.png)
+
+![斜杠命令中文效果](./screenshots/04-slash-commands-chinese.png)
+
+### 📝 汉化对照表
 
 | 原文 (English) | 译文 (中文) |
 |---------------|------------|
