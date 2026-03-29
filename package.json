@@ -8,8 +8,8 @@
     "uninstall": "node -e \"console.log('\\n🌸 卸载 cute-claude-hooks... 🌸\\n请手动删除 ~/.claude/hooks/tool-tips-post.sh 和 ~/.claude/localize/ 目录\\n')\""
   },
   "bin": {
-    "cute-claude-hooks-install": "./bin/install.js",
-    "cute-claude-hooks-restore": "./bin/restore.js"
+    "cute-claude-hooks-install": "bin/install.js",
+    "cute-claude-hooks-restore": "bin/restore.js"
   },
   "files": [
     "bin/",
