@@ -126,6 +126,33 @@ function getTargetWidth() {
   return process.platform === 'win32' ? 56 : 64;
 }
 
+function wrapSegments(prefix, segments, maxWidth) {
+  const width = Math.max(20, Number(maxWidth || 0));
+  const lines = [];
+  let current = prefix;
+
+  for (const segment of segments) {
+    const separator = current && current !== prefix ? ' | ' : ' ';
+    const candidate = current ? `${current}${separator}${segment}` : segment;
+
+    if (getDisplayWidth(candidate) <= width) {
+      current = candidate;
+      continue;
+    }
+
+    if (current) {
+      lines.push(current);
+    }
+    current = segment;
+  }
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines.join('\n');
+}
+
 function buildStatusVariants(input, callCount) {
   const model = normalizeModelName(input?.model?.display_name, input?.model?.id);
   const totalInputTokens = getTotalInputTokens(input);
@@ -134,61 +161,58 @@ function buildStatusVariants(input, callCount) {
   const usedPercentage = getUsedPercentage(input);
   const fullModel = truncateDisplayText(model, 18);
   const compactModel = truncateDisplayText(model, 12);
+  const verboseSegments = [
+    `调用次数 ${callCount}`,
+    `使用模型 ${fullModel}`,
+    `输入Token ${formatCompactNumber(totalInputTokens)}`,
+    `输出Token ${formatCompactNumber(totalOutputTokens)}`,
+    `费用 ${formatUsd(totalCost)}`,
+    `上下文 ${formatPercent(usedPercentage)}`,
+  ];
+  const compactSegments = [
+    `调用${callCount}次`,
+    `模型${compactModel}`,
+    `输入${formatCompactNumber(totalInputTokens)}`,
+    `输出${formatCompactNumber(totalOutputTokens)}`,
+    `费用${formatUsd(totalCost)}`,
+    `上下文${formatPercent(usedPercentage)}`,
+  ];
 
   return [
-    `Claude 监控: ${
-      [
-        `调用次数 ${callCount}`,
-        `使用模型 ${fullModel}`,
-        `输入Token ${formatCompactNumber(totalInputTokens)}`,
-        `输出Token ${formatCompactNumber(totalOutputTokens)}`,
-        `费用 ${formatUsd(totalCost)}`,
-        `上下文 ${formatPercent(usedPercentage)}`,
-      ].join(' | ')
-    }`,
-    `监控: ${
-      [
-        `调用${callCount}次`,
-        `模型${compactModel}`,
-        `输入${formatCompactNumber(totalInputTokens)}`,
-        `输出${formatCompactNumber(totalOutputTokens)}`,
-        `费用${formatUsd(totalCost)}`,
-        `上下文${formatPercent(usedPercentage)}`,
-      ].join(' | ')
-    }`,
-    `监控 ${
-      [
-        `调用${callCount}次`,
-        `模型${compactModel}`,
-        `输入${formatCompactNumber(totalInputTokens)}`,
-        `输出${formatCompactNumber(totalOutputTokens)}`,
-        `上下文${formatPercent(usedPercentage)}`,
-      ].join(' | ')
-    }`,
-    [
-      `调用${callCount}次`,
-      `输入${formatCompactNumber(totalInputTokens)}`,
-      `输出${formatCompactNumber(totalOutputTokens)}`,
-      `上下文${formatPercent(usedPercentage)}`,
-    ].join(' | '),
+    {
+      singleLine: `Claude 监控: ${verboseSegments.join(' | ')}`,
+      wrapped: wrapSegments('Claude 监控:', verboseSegments, getTargetWidth()),
+    },
+    {
+      singleLine: `监控: ${compactSegments.join(' | ')}`,
+      wrapped: wrapSegments('监控:', compactSegments, getTargetWidth()),
+    },
+    {
+      singleLine: `监控: ${compactSegments.join(' | ')}`,
+      wrapped: wrapSegments('监控:', compactSegments, Math.max(26, getTargetWidth() - 8)),
+    },
+    {
+      singleLine: compactSegments.join(' | '),
+      wrapped: wrapSegments('', compactSegments, Math.max(20, getTargetWidth() - 12)),
+    },
   ];
 }
 
 function buildStatusText(input, callCount) {
   const mode = getPreferredMode();
+  const width = getTargetWidth();
   const variants = buildStatusVariants(input, callCount);
 
-  if (mode === 'full') return variants[0];
-  if (mode === 'compact') return variants[2];
-  if (mode === 'mini') return variants[3];
+  if (mode === 'full') return variants[0].singleLine;
+  if (mode === 'compact') return variants[1].wrapped;
+  if (mode === 'mini') return variants[3].wrapped;
 
-  const width = getTargetWidth();
   for (const variant of variants) {
-    if (getDisplayWidth(variant) <= width) {
-      return variant;
+    if (getDisplayWidth(variant.singleLine) <= width) {
+      return variant.singleLine;
     }
   }
-  return variants[variants.length - 1];
+  return variants[1].wrapped;
 }
 
 async function main() {
