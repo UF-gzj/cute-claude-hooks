@@ -209,19 +209,26 @@
     <section class="card" style="margin-top: 18px;">
       <h2>安装方式</h2>
       <h3>方式一：HTTPS 安装，推荐</h3>
+      <pre><code>npm install -g https://github.com/UF-gzj/cute-claude-hooks/archive/refs/heads/master.tar.gz
+cute-claude-hooks-install</code></pre>
+
+      <h3>方式二：仓库地址安装</h3>
       <pre><code>npm install -g https://github.com/UF-gzj/cute-claude-hooks.git
 cute-claude-hooks-install</code></pre>
 
-      <h3>方式二：SSH 安装</h3>
+      <h3>方式三：SSH 安装</h3>
       <pre><code>npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git
 cute-claude-hooks-install</code></pre>
 
-      <h3>方式三：HTTPS Token 安装</h3>
+      <h3>方式四：HTTPS Token 安装</h3>
       <pre><code>npm install -g git+https://&lt;token&gt;@github.com/UF-gzj/cute-claude-hooks.git
 cute-claude-hooks-install</code></pre>
 
       <div class="tip">
         <strong>说明：</strong>第一条命令是把公开仓库里的包安装到全局环境，第二条命令才是正式把 Hook、界面汉化和监控状态栏写入 Claude Code 配置。
+      </div>
+      <div class="tip">
+        <strong>Windows 提示：</strong>如果你使用 Node 25 / npm 11，直接从 Git 仓库 URL 安装有概率出现全局命令存在，但实际脚本指向临时缓存目录并失效的情况。遇到这类报错时，优先改用 <code>master.tar.gz</code> 安装。
       </div>
     </section>
 

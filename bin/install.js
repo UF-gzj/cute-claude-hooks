@@ -853,7 +853,7 @@ function main() {
     console.log(`${CYAN}  如遇问题运行: cute-claude-hooks-install --verify${NC}`);
   }
 
-  console.log(`${CYAN}  安装提示: npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git${NC}`);
+  console.log(`${CYAN}  安装提示: npm install -g https://github.com/UF-gzj/cute-claude-hooks/archive/refs/heads/master.tar.gz${NC}`);
   console.log(`${CYAN}  作者: 关镇江${NC}\n`);
 }
 

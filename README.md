@@ -92,7 +92,10 @@
 ### 方式一：公开 Git 安装（推荐）
 
 ```bash
-# 从公开 Git 仓库全局安装（HTTPS，适合大多数人）
+# 从 GitHub 源码压缩包全局安装（Windows 更稳，推荐）
+npm install -g https://github.com/UF-gzj/cute-claude-hooks/archive/refs/heads/master.tar.gz
+
+# 如果你确定本机 npm 对 Git URL 安装正常，也可以使用仓库地址
 npm install -g https://github.com/UF-gzj/cute-claude-hooks.git
 
 # 或者使用 SSH 安装
@@ -109,6 +112,8 @@ cute-claude-hooks-restore
 ```bash
 npm install -g git+https://<token>@github.com/UF-gzj/cute-claude-hooks.git
 ```
+
+> Windows + Node 25 / npm 11 环境下，直接从 Git 仓库 URL 安装有概率落成失效的缓存链接，导致 `cute-claude-hooks-install` 找不到 `bin/install.js`。遇到这种情况，优先改用 `master.tar.gz` 安装。
 
 ### 安装选项
 
