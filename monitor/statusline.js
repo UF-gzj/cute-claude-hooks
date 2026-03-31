@@ -138,38 +138,38 @@ function buildStatusVariants(input, callCount) {
   return [
     `Claude 监控: ${
       [
-        `调用 ${callCount} 次`,
-        `模型 ${fullModel}`,
-        `输入 ${formatCompactNumber(totalInputTokens)}`,
-        `输出 ${formatCompactNumber(totalOutputTokens)}`,
-        formatUsd(totalCost),
+        `调用次数 ${callCount}`,
+        `使用模型 ${fullModel}`,
+        `输入Token ${formatCompactNumber(totalInputTokens)}`,
+        `输出Token ${formatCompactNumber(totalOutputTokens)}`,
+        `费用 ${formatUsd(totalCost)}`,
         `上下文 ${formatPercent(usedPercentage)}`,
       ].join(' | ')
     }`,
     `监控: ${
       [
-        `${callCount}次`,
-        compactModel,
-        `入${formatCompactNumber(totalInputTokens)}`,
-        `出${formatCompactNumber(totalOutputTokens)}`,
-        formatUsd(totalCost),
-        formatPercent(usedPercentage),
+        `调用${callCount}次`,
+        `模型${compactModel}`,
+        `输入${formatCompactNumber(totalInputTokens)}`,
+        `输出${formatCompactNumber(totalOutputTokens)}`,
+        `费用${formatUsd(totalCost)}`,
+        `上下文${formatPercent(usedPercentage)}`,
       ].join(' | ')
     }`,
     `监控 ${
       [
-        `${callCount}次`,
-        compactModel,
-        `${formatCompactNumber(totalInputTokens)}/${formatCompactNumber(totalOutputTokens)}`,
-        formatUsd(totalCost),
-        formatPercent(usedPercentage),
+        `调用${callCount}次`,
+        `模型${compactModel}`,
+        `输入${formatCompactNumber(totalInputTokens)}`,
+        `输出${formatCompactNumber(totalOutputTokens)}`,
+        `费用${formatUsd(totalCost)}`,
       ].join(' | ')
     }`,
     [
-      `调用 ${callCount} 次`,
-      compactModel,
-      `${formatCompactNumber(totalInputTokens)}/${formatCompactNumber(totalOutputTokens)}`,
-      formatUsd(totalCost),
+      `调用${callCount}次`,
+      `模型${compactModel}`,
+      `输入${formatCompactNumber(totalInputTokens)}`,
+      `输出${formatCompactNumber(totalOutputTokens)}`,
     ].join(' | '),
   ];
 }
