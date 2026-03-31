@@ -22,3 +22,6 @@ npm-debug.log*
 # NPM sensitive
 .npmrc
 .npm_token
+
+# Local docs (do not upload)
+docs/

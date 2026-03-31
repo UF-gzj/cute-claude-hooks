@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cute Claude Hooks 安装与使用说明</title>
+  <style>
+    :root {
+      --bg: #f6f1e8;
+      --paper: #fffdf8;
+      --ink: #1d2433;
+      --muted: #596275;
+      --accent: #1f6f78;
+      --accent-soft: #d7ecec;
+      --line: #e7dcc9;
+      --good: #2f7a45;
+      --warn: #a65b00;
+      --code: #18202f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top right, #f3d7bf 0, transparent 28%),
+        radial-gradient(circle at left 20%, #d7ecec 0, transparent 24%),
+        linear-gradient(180deg, #f7efe5 0%, var(--bg) 100%);
+      line-height: 1.7;
+    }
+    .wrap {
+      width: min(1040px, calc(100% - 32px));
+      margin: 32px auto 56px;
+    }
+    .hero, .card {
+      background: color-mix(in srgb, var(--paper) 92%, white 8%);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: 0 18px 48px rgba(35, 36, 52, 0.08);
+    }
+    .hero {
+      padding: 32px;
+      margin-bottom: 22px;
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4vw, 46px);
+      line-height: 1.15;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 0;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .card {
+      padding: 24px;
+    }
+    h2, h3 {
+      margin: 0 0 12px;
+      line-height: 1.25;
+    }
+    h2 {
+      font-size: 24px;
+    }
+    h3 {
+      font-size: 20px;
+    }
+    p, li {
+      color: var(--ink);
+    }
+    ul, ol {
+      padding-left: 22px;
+      margin: 12px 0 0;
+    }
+    .tip {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      border-radius: 12px;
+      background: #eef7f7;
+      color: var(--muted);
+    }
+    .good {
+      color: var(--good);
+      font-weight: 700;
+    }
+    .warn {
+      color: var(--warn);
+      font-weight: 700;
+    }
+    code, pre {
+      font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    }
+    pre {
+      margin: 14px 0 0;
+      padding: 16px;
+      background: var(--code);
+      color: #f3f6fb;
+      border-radius: 14px;
+      overflow: auto;
+      font-size: 14px;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      margin-top: 24px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Cute Claude Hooks 安装与使用说明</h1>
+      <p>关镇江原创私有增强版。这个工具让 Claude Code 在保留原有工作流的前提下，同时获得中文操作提示、界面汉化和实时监控状态栏。</p>
+      <div class="badge-row">
+        <span class="badge">中文提示</span>
+        <span class="badge">界面汉化</span>
+        <span class="badge">调用次数统计</span>
+        <span class="badge">Token / Cost / 模型展示</span>
+        <span class="badge">Windows / macOS / Linux</span>
+      </div>
+      <div class="tip">
+        私有仓库地址：
+        <a href="https://github.com/UF-gzj/cute-claude-hooks">https://github.com/UF-gzj/cute-claude-hooks</a>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>这个程序做了什么</h2>
+        <ul>
+          <li>给 Claude Code 的工具调用增加中文提示，让每次读文件、写文件、执行命令都更容易理解。</li>
+          <li>给 Claude Code 界面做汉化，把常见配置、命令说明、提示文案转成中文。</li>
+          <li>新增中文监控状态栏，实时显示调用次数、当前模型、输入 Token、输出 Token、费用和上下文占用。</li>
+          <li>保持原项目的一键安装方式，安装后继续通过 <code>cute-claude-hooks-install</code> 和 <code>cute-claude-hooks-restore</code> 管理。</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>解决了什么痛点</h2>
+        <ul>
+          <li>Claude Code 的默认英文提示对中文用户不够直观，尤其是刚接触命令行和自动化流程的用户。</li>
+          <li>使用 Claude Code 时很难快速感知当前会话已经调用了多少次模型、消耗了多少 Token、费用到了什么水平。</li>
+          <li>长会话里容易出现“上下文快满了但没注意到”的情况，影响后续对话质量和连续性。</li>
+          <li>原生界面里很多状态分散在不同位置，不适合快速扫一眼就判断当前会话成本和负载。</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>安装后的好处</h2>
+        <ul>
+          <li><span class="good">更容易理解</span>：每一步操作都有中文说明，排查和协作时更轻松。</li>
+          <li><span class="good">更容易控成本</span>：直接看到模型、Token、费用和调用次数，不用再到处找统计信息。</li>
+          <li><span class="good">更适合团队推广</span>：把原本偏技术化、英文偏重的体验，改成更适合中文团队使用的版本。</li>
+          <li><span class="good">更容易回退</span>：需要恢复时只运行 <code>cute-claude-hooks-restore</code> 即可。</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2>为什么值得安装</h2>
+        <p>如果你经常使用 Claude Code 做代码分析、改造、调试和自动化操作，这个增强版能明显降低使用门槛，也能帮你更快掌握会话成本和上下文状态。对于需要把 Claude Code 推给团队成员、测试同事或者中文业务人员使用的场景，价值会更明显。</p>
+        <div class="tip">
+          一句话总结：它不是改变 Claude Code 的核心能力，而是把“看得懂、管得住、回退方便”这三件事补齐。
+        </div>
+      </article>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>安装前准备</h2>
+      <ul>
+        <li>已安装 Node.js 14 及以上版本。</li>
+        <li>已安装 Claude Code。</li>
+        <li>当前 GitHub 账号 <code>UF-gzj</code> 对私有仓库 <code>cute-claude-hooks</code> 有访问权限。</li>
+        <li>推荐提前配置好 GitHub SSH Key；如果没有，也可以使用 HTTPS Token 方式安装。</li>
+      </ul>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>安装方式</h2>
+      <h3>方式一：SSH 安装，推荐</h3>
+      <pre><code>npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git
+cute-claude-hooks-install</code></pre>
+
+      <h3>方式二：HTTPS Token 安装</h3>
+      <pre><code>npm install -g git+https://&lt;token&gt;@github.com/UF-gzj/cute-claude-hooks.git
+cute-claude-hooks-install</code></pre>
+
+      <div class="tip">
+        <strong>说明：</strong>第一条命令是把私有包安装到全局环境，第二条命令才是正式把 Hook、界面汉化和监控状态栏写入 Claude Code 配置。
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>安装完成后会发生什么</h2>
+      <ul>
+        <li>复制中文提示 Hook 到 <code>~/.claude/hooks/</code>。</li>
+        <li>修改 <code>~/.claude/settings.json</code>，自动配置 Claude Code 的 hooks。</li>
+        <li>复制汉化脚本到 <code>~/.claude/localize/</code>，并对 Claude Code CLI 做汉化补丁。</li>
+        <li>复制监控脚本到 <code>~/.claude/monitor/</code>，自动写入 <code>statusLine</code>。</li>
+      </ul>
+      <pre><code>Claude 监控: 调用 12 次 | 模型 Sonnet 4 | 输入 124k | 输出 16k | $0.34 | 上下文 41%</code></pre>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>日常使用</h2>
+      <ul>
+        <li>完整安装：<code>cute-claude-hooks-install</code></li>
+        <li>仅安装中文提示 Hook：<code>cute-claude-hooks-install hook</code></li>
+        <li>仅安装界面汉化：<code>cute-claude-hooks-install localize</code></li>
+        <li>仅安装监控状态栏：<code>cute-claude-hooks-install monitor</code></li>
+        <li>诊断当前安装：<code>cute-claude-hooks-install --verify</code></li>
+        <li>恢复英文界面并移除监控：<code>cute-claude-hooks-restore</code></li>
+      </ul>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>适合哪些人安装</h2>
+      <ul>
+        <li>希望把 Claude Code 变成中文友好体验的个人开发者。</li>
+        <li>需要看懂 Claude Code 每一步在做什么的新手和非全职工程师。</li>
+        <li>希望实时盯住 Token、费用和模型调用次数的重度使用者。</li>
+        <li>需要在团队内部推广 Claude Code 的负责人或平台工程师。</li>
+      </ul>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>注意事项</h2>
+      <ul>
+        <li>这是私有仓库安装方案，未授权账号无法直接安装。</li>
+        <li>如果安装后没有生效，先重启 Claude Code，再运行 <code>cute-claude-hooks-install --verify</code> 排查。</li>
+        <li>Windows 用户建议提前安装 Git for Windows，确保 <code>bash</code> 可用。</li>
+        <li>如果你需要完全回退，执行 <code>cute-claude-hooks-restore</code> 即可。</li>
+      </ul>
+      <div class="tip">
+        <span class="warn">作者：</span> 关镇江
+      </div>
+    </section>
+
+    <p class="footer">关镇江原创私有增强版 · Cute Claude Hooks · 安装与使用说明</p>
+  </main>
+</body>
+</html>

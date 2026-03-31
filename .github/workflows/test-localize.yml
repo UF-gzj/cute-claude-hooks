@@ -8,7 +8,11 @@ on:
   push:
     branches: [main, master]
     paths:
+      - 'bin/**'
       - 'localize/**'
+      - 'monitor/**'
+      - 'package.json'
+      - 'README.md'
       - 'tool-tips-post.sh'
       - '.github/workflows/test-localize.yml'
   pull_request:
@@ -42,6 +46,12 @@ jobs:
           echo "✅ keyword.js 语法正确"
           node -c localize/localize.js
           echo "✅ localize.js 语法正确"
+          node -c monitor/constants.js
+          node -c monitor/formatters.js
+          node -c monitor/stats-cache.js
+          node -c monitor/transcript-counter.js
+          node -c monitor/statusline.js
+          echo "✅ monitor 模块语法正确"
 
       - name: 🧪 测试 Hook 中文输出
         run: |
@@ -70,6 +80,29 @@ jobs:
             echo "⚠️ 关键词数量偏少 ($count 个)"
           fi
 
+      - name: 🧪 测试 Claude 监控状态栏输出
+        run: |
+          result=$(node -e "process.stdout.write(JSON.stringify({session_id:'test-session',transcript_path:'missing.jsonl',model:{display_name:'Claude Sonnet 4',id:'claude-sonnet-4'},context_window:{total_input_tokens:124000,total_output_tokens:16000,used_percentage:41},cost:{total_cost_usd:0.34}}))" | node monitor/statusline.js)
+          echo "输出: $result"
+          if echo "$result" | grep -q "Claude 监控:"; then
+            echo "✅ 状态栏输出格式正确"
+          else
+            echo "❌ 状态栏输出格式错误"
+            exit 1
+          fi
+
+      - name: 🧪 测试安装器写入 statusLine
+        run: |
+          export HOME="$RUNNER_TEMP/cute-claude-home"
+          mkdir -p "$HOME"
+          node bin/install.js monitor
+          if grep -q '"statusLine"' "$HOME/.claude/settings.json" && grep -q 'statusline.js' "$HOME/.claude/settings.json"; then
+            echo "✅ 安装器已写入 statusLine 配置"
+          else
+            echo "❌ 安装器未正确写入 statusLine 配置"
+            exit 1
+          fi
+
   # ==================== macOS 测试 ====================
   test-macos:
     name: 🍎 macOS 测试
@@ -96,6 +129,12 @@ jobs:
           echo "✅ keyword.js 语法正确"
           node -c localize/localize.js
           echo "✅ localize.js 语法正确"
+          node -c monitor/constants.js
+          node -c monitor/formatters.js
+          node -c monitor/stats-cache.js
+          node -c monitor/transcript-counter.js
+          node -c monitor/statusline.js
+          echo "✅ monitor 模块语法正确"
 
       - name: 🧪 测试 Hook 中文输出
         run: |
@@ -124,6 +163,29 @@ jobs:
             echo "⚠️ 关键词数量偏少 ($count 个)"
           fi
 
+      - name: 🧪 测试 Claude 监控状态栏输出
+        run: |
+          result=$(node -e "process.stdout.write(JSON.stringify({session_id:'test-session',transcript_path:'missing.jsonl',model:{display_name:'Claude Sonnet 4',id:'claude-sonnet-4'},context_window:{total_input_tokens:124000,total_output_tokens:16000,used_percentage:41},cost:{total_cost_usd:0.34}}))" | node monitor/statusline.js)
+          echo "输出: $result"
+          if echo "$result" | grep -q "Claude 监控:"; then
+            echo "✅ 状态栏输出格式正确"
+          else
+            echo "❌ 状态栏输出格式错误"
+            exit 1
+          fi
+
+      - name: 🧪 测试安装器写入 statusLine
+        run: |
+          export HOME="$RUNNER_TEMP/cute-claude-home"
+          mkdir -p "$HOME"
+          node bin/install.js monitor
+          if grep -q '"statusLine"' "$HOME/.claude/settings.json" && grep -q 'statusline.js' "$HOME/.claude/settings.json"; then
+            echo "✅ 安装器已写入 statusLine 配置"
+          else
+            echo "❌ 安装器未正确写入 statusLine 配置"
+            exit 1
+          fi
+
   # ==================== Windows 测试 ====================
   test-windows:
     name: 🪟 Windows 测试
@@ -146,6 +208,12 @@ jobs:
           Write-Host "✅ keyword.js 语法正确" -ForegroundColor Green
           node -c localize/localize.js
           Write-Host "✅ localize.js 语法正确" -ForegroundColor Green
+          node -c monitor/constants.js
+          node -c monitor/formatters.js
+          node -c monitor/stats-cache.js
+          node -c monitor/transcript-counter.js
+          node -c monitor/statusline.js
+          Write-Host "✅ monitor 模块语法正确" -ForegroundColor Green
 
       - name: 🧪 测试关键词字典
         shell: pwsh
@@ -157,6 +225,33 @@ jobs:
             Write-Host "✅ 关键词数量充足 ($count 个)" -ForegroundColor Green
           } else {
             Write-Host "⚠️ 关键词数量偏少 ($count 个)" -ForegroundColor Yellow
+          }
+
+      - name: 🧪 测试 Claude 监控状态栏输出
+        shell: pwsh
+        run: |
+          $json = '{"session_id":"test-session","transcript_path":"missing.jsonl","model":{"display_name":"Claude Sonnet 4","id":"claude-sonnet-4"},"context_window":{"total_input_tokens":124000,"total_output_tokens":16000,"used_percentage":41},"cost":{"total_cost_usd":0.34}}'
+          $result = $json | node monitor/statusline.js
+          Write-Host "输出: $result"
+          if ($result -like "*Claude 监控:*") {
+            Write-Host "✅ 状态栏输出格式正确" -ForegroundColor Green
+          } else {
+            Write-Host "❌ 状态栏输出格式错误" -ForegroundColor Red
+            exit 1
+          }
+
+      - name: 🧪 测试安装器写入 statusLine
+        shell: pwsh
+        run: |
+          $env:USERPROFILE = Join-Path $env:RUNNER_TEMP 'cute-claude-home'
+          New-Item -ItemType Directory -Force $env:USERPROFILE | Out-Null
+          node bin/install.js monitor
+          $settingsPath = Join-Path $env:USERPROFILE '.claude\settings.json'
+          if ((Test-Path $settingsPath) -and ((Get-Content $settingsPath -Raw) -like '*"statusLine"*') -and ((Get-Content $settingsPath -Raw) -like '*statusline.js*')) {
+            Write-Host "✅ 安装器已写入 statusLine 配置" -ForegroundColor Green
+          } else {
+            Write-Host "❌ 安装器未正确写入 statusLine 配置" -ForegroundColor Red
+            exit 1
           }
 
   # ==================== 测试报告 ====================

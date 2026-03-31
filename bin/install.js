@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Cute Claude Hooks - NPM 安装脚本
- * 安装中文提示钩子 + 界面汉化
+ * Cute Claude Hooks - 私有增强版安装脚本
+ * 安装中文提示钩子 + 界面汉化 + Claude 监控状态栏
  * 完整支持 Windows / macOS / Linux
- * License: MIT
+ * Original author: 关镇江
  */
 
 const fs = require('fs');
@@ -19,6 +19,7 @@ const RED = '\x1b[0;31m';
 const CYAN = '\x1b[0;36m';
 const NC = '\x1b[0m';
 const IS_WIN = process.platform === 'win32';
+let settingsBackedUp = false;
 
 console.log(`\n${MAGENTA}==============================================${NC}`);
 console.log(`${MAGENTA}     Cute Claude Hooks 安装器${NC}`);
@@ -29,6 +30,7 @@ const homeDir = os.homedir();
 const claudeDir = path.join(homeDir, '.claude');
 const hooksDir = path.join(claudeDir, 'hooks');
 const localizeDir = path.join(claudeDir, 'localize');
+const monitorDir = path.join(claudeDir, 'monitor');
 const settingsFile = path.join(claudeDir, 'settings.json');
 
 // 获取 npm 包目录
@@ -101,16 +103,51 @@ function ensureLfLineEndings(filePath) {
  * 备份 settings.json
  */
 function backupSettings() {
+  if (settingsBackedUp) return settingsFile + '.bak';
   if (!fs.existsSync(settingsFile)) return null;
   const backupFile = settingsFile + '.bak';
   try {
     fs.copyFileSync(settingsFile, backupFile);
+    settingsBackedUp = true;
     console.log(`${GREEN}已备份: settings.json.bak${NC}`);
     return backupFile;
   } catch (err) {
     console.log(`${YELLOW}备份失败: ${err.message}${NC}`);
     return null;
   }
+}
+
+function loadSettings() {
+  if (!fs.existsSync(settingsFile)) {
+    return {};
+  }
+
+  const raw = fs.readFileSync(settingsFile, 'utf8');
+  return JSON.parse(raw);
+}
+
+function saveSettings(settings, fallbackSnippet) {
+  try {
+    fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf8');
+    console.log(`${GREEN}已保存: ${settingsFile}${NC}`);
+    return true;
+  } catch (err) {
+    console.log(`${RED}写入失败: ${err.message}${NC}`);
+    if (fallbackSnippet) {
+      console.log(`${YELLOW}请手动添加以下配置到 settings.json:${NC}`);
+      console.log(JSON.stringify(fallbackSnippet, null, 2));
+    }
+    return false;
+  }
+}
+
+function normalizeForClaude(filePath) {
+  return filePath.replace(/\\/g, '/');
+}
+
+function buildStatusLineCommand(scriptPath) {
+  const normalizedPath = normalizeForClaude(scriptPath);
+  return `node "${normalizedPath}"`;
 }
 
 /**
@@ -222,6 +259,55 @@ function verifyHook(hookPath) {
   return result;
 }
 
+function verifyMonitor(statusLineScript) {
+  const { spawnSync } = require('child_process');
+  const result = { ok: false, output: '', error: '' };
+
+  try {
+    const testInput = JSON.stringify({
+      session_id: 'test-session',
+      transcript_path: 'missing.jsonl',
+      model: { display_name: 'Claude Sonnet 4', id: 'claude-sonnet-4' },
+      context_window: {
+        total_input_tokens: 124000,
+        total_output_tokens: 16000,
+        used_percentage: 41,
+      },
+      cost: { total_cost_usd: 0.34 },
+    });
+
+    const proc = spawnSync('node', [statusLineScript], {
+      input: testInput,
+      encoding: 'utf8',
+      timeout: 10000,
+      windowsHide: true,
+    });
+
+    if (proc.error) {
+      result.error = `执行失败: ${proc.error.message}`;
+      return result;
+    }
+
+    if (proc.status !== 0) {
+      result.error = `退出码 ${proc.status}: ${(proc.stderr || '').substring(0, 200)}`;
+      return result;
+    }
+
+    const output = (proc.stdout || '').trim();
+    result.output = output;
+
+    if (output.includes('Claude 监控:') && output.includes('模型')) {
+      result.ok = true;
+    } else {
+      result.error = `输出格式不正确: ${output.substring(0, 200)}`;
+    }
+  } catch (err) {
+    result.error = `执行失败: ${err.message}`;
+  }
+
+  return result;
+}
+
 // ========== 安装钩子 ==========
 function installHook() {
   console.log(`${MAGENTA}[1/2] 安装中文提示钩子...${NC}\n`);
@@ -302,24 +388,23 @@ function updateSettings(hookPath) {
 
   let settings = {};
 
-  if (fs.existsSync(settingsFile)) {
-    try {
-      const raw = fs.readFileSync(settingsFile, 'utf8');
-      settings = JSON.parse(raw);
+  try {
+    settings = loadSettings();
+    if (fs.existsSync(settingsFile)) {
       console.log(`${GREEN}已读取现有配置: ${settingsFile}${NC}`);
-    } catch (err) {
-      console.log(`${RED}错误: settings.json 格式不正确 - ${err.message}${NC}`);
-      console.log(`${YELLOW}请手动检查: ${settingsFile}${NC}`);
-      console.log(`${YELLOW}备份已保存为: ${settingsFile}.bak${NC}`);
-      return false;
     }
+  } catch (err) {
+    console.log(`${RED}错误: settings.json 格式不正确 - ${err.message}${NC}`);
+    console.log(`${YELLOW}请手动检查: ${settingsFile}${NC}`);
+    console.log(`${YELLOW}备份已保存为: ${settingsFile}.bak${NC}`);
+    return false;
   }
 
   if (!settings.hooks) settings.hooks = {};
   if (!settings.hooks.PostToolUse) settings.hooks.PostToolUse = [];
 
   // 使用正斜杠路径（Claude Code 内部统一使用正斜杠）
-  const normalizedPath = hookPath.replace(/\\/g, '/');
+  const normalizedPath = normalizeForClaude(hookPath);
 
   // matcher 匹配所有常用工具 + MCP 工具
   const matcher = 'Bash|Read|Write|Edit|Glob|Grep|mcp__*';
@@ -350,16 +435,111 @@ function updateSettings(hookPath) {
   console.log(`${CYAN}钩子命令: ${normalizedPath}${NC}`);
   console.log(`${CYAN}匹配模式: ${matcher}${NC}`);
 
-  try {
-    fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf8');
-    console.log(`${GREEN}已保存: ${settingsFile}${NC}`);
-    return true;
-  } catch (err) {
-    console.log(`${RED}写入失败: ${err.message}${NC}`);
-    console.log(`${YELLOW}请手动添加以下配置到 settings.json:${NC}`);
-    console.log(JSON.stringify({ hooks: { PostToolUse: [hookConfig] } }, null, 2));
+  return saveSettings(settings, { hooks: { PostToolUse: [hookConfig] } });
+}
+
+// ========== 安装监控模块 ==========
+function copyMonitorFiles() {
+  const monitorSrcDir = path.join(npmDir, 'monitor');
+  if (!fs.existsSync(monitorSrcDir)) {
+    console.log(`${RED}找不到监控目录: ${monitorSrcDir}${NC}`);
     return false;
   }
+
+  ensureDir(monitorDir);
+  ensureDir(path.join(monitorDir, 'cache'));
+
+  const files = ['constants.js', 'formatters.js', 'stats-cache.js', 'transcript-counter.js', 'statusline.js'];
+  let success = true;
+
+  for (const file of files) {
+    const src = path.join(monitorSrcDir, file);
+    const dest = path.join(monitorDir, file);
+    if (!fs.existsSync(src)) {
+      console.log(`${RED}缺少监控文件: ${file}${NC}`);
+      success = false;
+      continue;
+    }
+
+    if (!copyFile(src, dest)) {
+      success = false;
+      continue;
+    }
+
+    if (!IS_WIN) {
+      try { fs.chmodSync(dest, '755'); } catch (err) {}
+    }
+  }
+
+  return success;
+}
+
+function updateStatusLineSettings(statusLineCommand) {
+  backupSettings();
+
+  let settings = {};
+  try {
+    settings = loadSettings();
+    if (fs.existsSync(settingsFile)) {
+      console.log(`${GREEN}已读取现有配置: ${settingsFile}${NC}`);
+    }
+  } catch (err) {
+    console.log(`${RED}错误: settings.json 格式不正确 - ${err.message}${NC}`);
+    console.log(`${YELLOW}请手动检查: ${settingsFile}${NC}`);
+    console.log(`${YELLOW}备份已保存为: ${settingsFile}.bak${NC}`);
+    return false;
+  }
+
+  if (
+    settings.statusLine
+    && settings.statusLine.command
+    && settings.statusLine.command !== statusLineCommand
+  ) {
+    console.log(`${YELLOW}检测到已有自定义 statusLine，将覆盖为 Claude 监控状态栏${NC}`);
+  }
+
+  settings.statusLine = {
+    type: 'command',
+    command: statusLineCommand,
+  };
+
+  console.log(`${GREEN}已更新: statusLine 配置${NC}`);
+  console.log(`${CYAN}状态栏命令: ${statusLineCommand}${NC}`);
+
+  return saveSettings(settings, {
+    statusLine: {
+      type: 'command',
+      command: statusLineCommand,
+    }
+  });
+}
+
+function installMonitor() {
+  console.log(`\n${MAGENTA}[3/3] 安装 Claude 监控状态栏...${NC}\n`);
+
+  if (!copyMonitorFiles()) {
+    return false;
+  }
+
+  const statusLineScript = path.join(monitorDir, 'statusline.js');
+  const statusLineCommand = buildStatusLineCommand(statusLineScript);
+  if (!updateStatusLineSettings(statusLineCommand)) {
+    return false;
+  }
+
+  console.log(`\n${CYAN}验证监控状态栏脚本...${NC}`);
+  const verify = verifyMonitor(statusLineScript);
+  if (verify.ok) {
+    console.log(`${GREEN}验证通过! Claude 监控状态栏脚本正常工作${NC}`);
+    console.log(`${CYAN}输出示例: ${verify.output.substring(0, 120)}${NC}`);
+  } else {
+    console.log(`${RED}验证失败! Claude 监控状态栏脚本可能无法正常工作${NC}`);
+    console.log(`${RED}原因: ${verify.error}${NC}`);
+    return false;
+  }
+
+  console.log(`${GREEN}Claude 监控状态栏已安装${NC}`);
+  return true;
 }
 
 // ========== 安装汉化 ==========
@@ -367,6 +547,7 @@ function installLocalize() {
   console.log(`\n${MAGENTA}[2/2] 安装界面汉化...${NC}\n`);
 
   ensureDir(localizeDir);
+  let copiedAll = true;
 
   // 核心文件
   const files = ['keyword.js', 'localize.js'];
@@ -375,11 +556,19 @@ function installLocalize() {
     const src = path.join(npmDir, 'localize', file);
     const dest = path.join(localizeDir, file);
     if (fs.existsSync(src)) {
-      copyFile(src, dest);
+      if (!copyFile(src, dest)) {
+        copiedAll = false;
+      }
     } else {
       console.log(`${YELLOW}缺少文件: ${file}${NC}`);
+      copiedAll = false;
     }
   });
+
+  if (!copiedAll) {
+    console.log(`${RED}汉化文件复制不完整，跳过汉化执行${NC}`);
+    return false;
+  }
 
   // 执行汉化
   console.log(`\n${MAGENTA}执行汉化...${NC}`);
@@ -388,11 +577,14 @@ function installLocalize() {
     const jsScript = path.join(localizeDir, 'localize.js');
     if (fs.existsSync(jsScript)) {
       execSync(`node "${jsScript}"`, { stdio: 'inherit' });
+      return true;
     }
   } catch (err) {
     console.log(`${YELLOW}警告: 汉化过程中遇到问题${NC}`);
     console.log(`${YELLOW}可手动执行: node ~/.claude/localize/localize.js${NC}`);
   }
+
+  return false;
 }
 
 // ========== 诊断模式 ==========
@@ -521,8 +713,40 @@ function runDiagnostics() {
     allOk = false;
   }
 
-  // 5. Windows 特殊检查
-  console.log(`\n${CYAN}[5/5] 系统环境检查...${NC}`);
+  // 5. 检查监控状态栏配置
+  console.log(`\n${CYAN}[5/6] 检查 Claude 监控状态栏...${NC}`);
+  const statusLineScript = path.join(monitorDir, 'statusline.js');
+  if (fs.existsSync(statusLineScript)) {
+    console.log(`${GREEN}  状态栏脚本存在: ${statusLineScript}${NC}`);
+    const verifyMonitorResult = verifyMonitor(statusLineScript);
+    if (verifyMonitorResult.ok) {
+      console.log(`${GREEN}  状态栏验证通过${NC}`);
+      console.log(`${GREEN}  输出: ${verifyMonitorResult.output.substring(0, 120)}${NC}`);
+    } else {
+      console.log(`${RED}  问题: ${verifyMonitorResult.error}${NC}`);
+      allOk = false;
+    }
+  } else {
+    console.log(`${YELLOW}  未找到状态栏脚本，可能尚未安装监控模块${NC}`);
+  }
+
+  if (fs.existsSync(settingsFile)) {
+    try {
+      const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+      if (settings.statusLine && settings.statusLine.command) {
+        console.log(`${GREEN}  statusLine 配置存在${NC}`);
+        console.log(`${GREEN}  command: ${settings.statusLine.command}${NC}`);
+      } else {
+        console.log(`${YELLOW}  未检测到 statusLine 配置${NC}`);
+      }
+    } catch (err) {
+      console.log(`${RED}  问题: 无法读取 statusLine 配置 - ${err.message}${NC}`);
+      allOk = false;
+    }
+  }
+
+  // 6. Windows 特殊检查
+  console.log(`\n${CYAN}[6/6] 系统环境检查...${NC}`);
   if (IS_WIN) {
     try {
       const autocrlf = execSync('git config --global core.autocrlf', { encoding: 'utf8' }).trim();
@@ -572,22 +796,26 @@ function main() {
   const mode = args[0] || 'all';
   let hookOk = false;
   let locOk = false;
+  let monitorOk = false;
 
   switch (mode) {
     case 'hook':
     case '1':
       hookOk = installHook();
       break;
+    case 'monitor':
+    case '3':
+      monitorOk = installMonitor();
+      break;
     case 'localize':
     case '2':
-      installLocalize();
-      locOk = true;
+      locOk = installLocalize();
       break;
     case 'all':
     default:
       hookOk = installHook();
-      installLocalize();
-      locOk = true;
+      locOk = installLocalize();
+      monitorOk = installMonitor();
       break;
   }
 
@@ -596,17 +824,27 @@ function main() {
   console.log(`${MAGENTA}  安装完成!${NC}`);
   console.log(`${MAGENTA}${'='.repeat(50)}${NC}`);
 
-  if (hookOk) {
-    console.log(`${GREEN}  钩子: 已安装${NC}`);
-  } else {
-    console.log(`${RED}  钩子: 安装失败或有问题${NC}`);
-    if (IS_WIN) {
-      console.log(`${YELLOW}  运行诊断: cute-claude-hooks-install --verify${NC}`);
+  if (mode === 'all' || mode === 'hook' || mode === '1') {
+    if (hookOk) {
+      console.log(`${GREEN}  钩子: 已安装${NC}`);
+    } else {
+      console.log(`${RED}  钩子: 安装失败或有问题${NC}`);
+      if (IS_WIN) {
+        console.log(`${YELLOW}  运行诊断: cute-claude-hooks-install --verify${NC}`);
+      }
     }
   }
 
   if (locOk) {
     console.log(`${GREEN}  汉化: 已安装${NC}`);
+  } else if (mode === 'all' || mode === 'localize' || mode === '2') {
+    console.log(`${RED}  汉化: 安装失败或有问题${NC}`);
+  }
+
+  if (monitorOk) {
+    console.log(`${GREEN}  监控: 已安装${NC}`);
+  } else if (mode === 'all' || mode === 'monitor' || mode === '3') {
+    console.log(`${RED}  监控: 安装失败或有问题${NC}`);
   }
 
   console.log(`${YELLOW}  请重启 Claude Code 使所有更改生效${NC}`);
@@ -615,7 +853,8 @@ function main() {
     console.log(`${CYAN}  如遇问题运行: cute-claude-hooks-install --verify${NC}`);
   }
 
-  console.log(`${CYAN}  文档: https://github.com/gugug168/cute-claude-hooks${NC}\n`);
+  console.log(`${CYAN}  私有安装提示: npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git${NC}`);
+  console.log(`${CYAN}  作者: 关镇江${NC}\n`);
 }
 
 main();

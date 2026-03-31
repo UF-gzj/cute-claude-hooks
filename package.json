@@ -1,11 +1,11 @@
 {
   "name": "cute-claude-hooks",
-  "version": "1.1.1",
-  "description": "🌸 让 Claude Code 拥有完整的中文体验！中文提示 + 界面汉化，专为编程小白设计",
+  "version": "1.2.0",
+  "description": "关镇江原创私有增强版：Claude Code 中文提示、界面汉化与监控状态栏",
   "main": "index.js",
   "scripts": {
-    "postinstall": "node -e \"console.log('\\n🌸 感谢安装 cute-claude-hooks! 🌸\\n\\n请运行以下命令完成安装:\\n\\n  Windows: cute-claude-hooks-install\\n  macOS/Linux: cute-claude-hooks-install\\n\\n或查看文档: https://github.com/gugug168/cute-claude-hooks\\n')\"",
-    "uninstall": "node -e \"console.log('\\n🌸 卸载 cute-claude-hooks... 🌸\\n请手动删除 ~/.claude/hooks/tool-tips-post.sh 和 ~/.claude/localize/ 目录\\n')\""
+    "postinstall": "node -e \"console.log('\\n🌸 关镇江私有增强版已安装到全局环境! 🌸\\n\\n下一步请运行:\\n\\n  cute-claude-hooks-install\\n\\n建议通过私有 Git 仓库安装本包。\\n')\"",
+    "uninstall": "node -e \"console.log('\\n🌸 卸载 cute-claude-hooks... 🌸\\n请手动删除 ~/.claude/hooks/tool-tips-post.sh、~/.claude/localize/ 和 ~/.claude/monitor/ 目录\\n')\""
   },
   "bin": {
     "cute-claude-hooks-install": "bin/install.js",
@@ -14,7 +14,9 @@
   "files": [
     "bin/",
     "localize/",
+    "monitor/",
     "tool-tips-post.sh",
+    "INSTALL_AND_USAGE.html",
     "README.md",
     "LICENSE"
   ],
@@ -32,16 +34,13 @@
     "小白",
     "beginner-friendly"
   ],
-  "author": "gugug168",
+  "author": "关镇江",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gugug168/cute-claude-hooks.git"
+    "url": "git+https://github.com/UF-gzj/cute-claude-hooks.git"
   },
-  "bugs": {
-    "url": "https://github.com/gugug168/cute-claude-hooks/issues"
-  },
-  "homepage": "https://github.com/gugug168/cute-claude-hooks#readme",
+  "homepage": "https://github.com/UF-gzj/cute-claude-hooks",
   "engines": {
     "node": ">=14.0.0"
   },

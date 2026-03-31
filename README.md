@@ -2,15 +2,17 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-orange.svg)](https://claude.ai/code)
-[![npm version](https://img.shields.io/npm/v/cute-claude-hooks.svg)](https://www.npmjs.com/package/cute-claude-hooks)
-[![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](https://github.com/gugug168/cute-claude-hooks)
-[![GitHub Actions](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml)
+[![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#)
+[![Private Git](https://img.shields.io/badge/Install-Private%20Git-black.svg)](#)
 
-> 🌸 让 Claude Code 拥有完整的中文体验！中文提示 + 界面汉化，专为编程小白设计
+> 关镇江原创私有增强版：让 Claude Code 拥有完整的中文体验！中文提示 + 界面汉化 + 中文监控状态栏
 
 > **💡 安装方式说明：**
-> - **Hook 脚本**（工具提示 + 任务完成通知）：支持 **NPM 安装** 和 **手动安装** 两种方式
-> - **界面汉化**（配置面板、命令说明等）：**仅支持 NPM 安装**，暂不支持手动安装
+> - **统一安装策略**：使用 **私有 Git 仓库** 全局安装
+> - **启用方式**：安装完成后运行 `cute-claude-hooks-install`
+> - **恢复方式**：运行 `cute-claude-hooks-restore`
+> - **私有仓库地址**：`https://github.com/UF-gzj/cute-claude-hooks`
+> - **HTML 安装说明**：查看 [INSTALL_AND_USAGE.html](./INSTALL_AND_USAGE.html)
 
 ## 📸 效果预览
 
@@ -67,10 +69,10 @@
 
 - 📖 **中文操作提示** - 每个操作都有详细的中文解释，小白也能看懂
 - 🌸 **界面汉化** - 配置面板、命令说明、快捷键提示全中文
+- 📊 **中文监控状态栏** - 直接显示调用次数、模型、输入/输出 Token、费用、上下文占用
 - 🖥️ **跨平台** - Windows/macOS/Linux 通用
 - 📦 **轻量级** - 无依赖，秒级安装
 - 🔧 **易自定义** - 完整的自定义指南
-- 🇨🇳 **国内加速** - 支持 npmmirror 镜像安装
 - 🧪 **自动测试** - GitHub Actions 三平台自动测试
 
 ---
@@ -79,47 +81,30 @@
 
 ### 功能与安装方式对应表
 
-| 功能 | NPM 安装 | 手动/脚本安装 |
-|------|:--------:|:------------:|
+| 功能 | 私有 Git 安装 | 手动/脚本安装 |
+|------|:------------:|:------------:|
 | 📖 工具提示 Hook (tool-tips-post.sh) | ✅ | ✅ |
-| 🔔 任务完成通知 Hook (task-done-notify.sh) | ✅ | ✅ |
+| 📊 Claude 监控状态栏 | ✅ | ❌ 暂不支持 |
 | 🌐 界面汉化 (配置面板、斜杠命令等) | ✅ | ❌ 暂不支持 |
 
-> 界面汉化需要修改 Claude Code 内部文件，目前仅通过 NPM 安装脚本自动完成，暂不提供手动安装方式。
+> Claude 监控状态栏与界面汉化都需要通过安装脚本自动配置，目前仅支持私有 Git 安装后执行安装器。
 
-### 方式一：NPM 安装（推荐）
+### 方式一：私有 Git 安装（推荐）
 
 ```bash
-# 全局安装
-npm install -g cute-claude-hooks
+# 从私有 Git 仓库全局安装
+npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git
 
-# 运行安装脚本
+# 运行安装脚本，自动启用 Hook + 汉化 + Claude 监控状态栏
 cute-claude-hooks-install
 
-# 恢复英文界面
+# 恢复英文界面并移除 Claude 监控状态栏
 cute-claude-hooks-restore
 ```
 
-**或者使用 npx（无需全局安装）：**
+**如果你使用 HTTPS Token：**
 ```bash
-npx cute-claude-hooks-install
-```
-
-### 方式二：国内加速安装（推荐国内用户）
-
-如果 npm 官方源速度慢，可以使用国内镜像：
-
-```bash
-# 使用 npmmirror 镜像安装
-npm install -g cute-claude-hooks --registry=https://registry.npmmirror.com
-
-# 运行安装脚本
-cute-claude-hooks-install
-```
-
-**或者使用 npx：**
-```bash
-npx cute-claude-hooks-install
+npm install -g git+https://<token>@github.com/UF-gzj/cute-claude-hooks.git
 ```
 
 ### 安装选项
@@ -161,25 +146,36 @@ npx cute-claude-hooks-install
 - ✅ 欢迎界面汉化
 - ✅ 状态信息汉化
 
-### 3️⃣ 恢复功能 (Restore)
+### 3️⃣ Claude 监控状态栏
 
-随时可以恢复到英文界面：
+安装后会自动写入 Claude Code 的 `statusLine` 配置，显示类似：
 
-**Windows:**
-```powershell
-~/.claude/localize/restore.ps1
+```text
+Claude 监控: 调用 12 次 | 模型 Sonnet 4 | 输入 124k | 输出 16k | $0.34 | 上下文 41%
 ```
 
-**macOS/Linux:**
+默认展示：
+
+- 调用次数
+- 当前模型
+- 累计输入 Token
+- 累计输出 Token
+- 当前会话费用
+- 上下文占用百分比
+
+### 4️⃣ 恢复功能 (Restore)
+
+随时可以恢复到英文界面，并移除 Claude 监控状态栏配置：
+
 ```bash
-~/.claude/localize/restore.sh
+cute-claude-hooks-restore
 ```
 
 ---
 
 ## 🪟 Windows 手动安装（自动安装失败时使用）
 
-如果 `cute-claude-hooks-install` 运行后中文提示没有出现，按以下步骤手动安装：
+如果 `cute-claude-hooks-install` 运行后中文提示没有出现，按以下步骤手动安装 Hook：
 
 ### 前提条件
 - 已安装 [Git for Windows](https://git-scm.com/downloads/win)
@@ -308,14 +304,23 @@ cute-claude-hooks/
 ├── 📄 LICENSE                # MIT 许可证
 ├── 🔧 tool-tips-post.sh      # 工具提示 Hook 脚本
 ├── 📁 bin/                   # 安装脚本
-│   ├── 📦 install.js         # 统一安装器（hooks + 汉化）
-│   └── 📦 restore.js         # 恢复英文界面
+│   ├── 📦 install.js         # 统一安装器（hooks + 汉化 + 监控）
+│   └── 📦 restore.js         # 恢复英文界面并清理监控
 ├── 📁 localize/              # 界面汉化模块
 │   ├── 📝 keyword.js         # 关键词翻译字典 (151词条)
 │   └── 🔧 localize.js        # Node.js 全局替换汉化引擎
+├── 📁 monitor/               # Claude 监控状态栏模块
+│   ├── 📊 statusline.js      # 状态栏入口
+│   ├── 📈 transcript-counter.js # 调用次数统计
+│   ├── 💾 stats-cache.js     # 本地缓存
+│   ├── 🔢 formatters.js      # 文本格式化
+│   └── ⚙️ constants.js       # 常量定义
 ├── 📁 .github/
 │   └── 📁 workflows/
 │       └── 🧪 test-localize.yml  # 跨平台自动测试
+├── 📁 docs/
+│   ├── 📄 claude-monitor-design.md
+│   └── 📄 claude-monitor-dev-plan.md
 └── 📁 screenshots/           # 截图目录
 ```
 
@@ -325,7 +330,7 @@ cute-claude-hooks/
 
 本项目使用 GitHub Actions 进行跨平台自动测试：
 
-[![Test Claude Code Localization](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml/badge.svg)](https://github.com/gugug168/cute-claude-hooks/actions/workflows/test-localization.yml)
+私有仓库可按需接入你自己的 GitHub Actions / Gitea CI / 企业 CI。
 
 | 平台 | 状态 | 测试内容 |
 |-----|------|---------|
@@ -355,23 +360,15 @@ cute-claude-hooks/
 
 ---
 
-## 🤝 贡献
+## 🤝 私有协作
 
-欢迎提交 Issue 和 PR！特别是：
+如果你在私有团队内继续维护这套工具，建议协作时重点关注：
 
 - 🌍 新的汉化词条
 - 🔧 新的命令解释
-- 📸 效果截图
-- 📝 文档改进
-- 🐛 Bug 修复
-
-### 贡献截图
-
-如果你使用了本项目，欢迎贡献效果截图：
-
-1. Fork 本仓库
-2. 将截图放入 `screenshots/` 目录
-3. 提交 Pull Request
+- 📊 Claude 监控展示优化
+- 📝 安装说明与排障文档
+- 🐛 跨平台兼容性修复
 
 ---
 
@@ -390,9 +387,5 @@ cute-claude-hooks/
 ---
 
 <p align="center">
-  Made with 🌸 by <a href="https://github.com/gugug168">gugug168</a>
-</p>
-
-<p align="center">
-  如果这个项目对你有帮助，请给一个 ⭐ Star 支持一下！
+  原创开发：关镇江
 </p>
