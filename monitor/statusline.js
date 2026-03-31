@@ -126,33 +126,6 @@ function getTargetWidth() {
   return process.platform === 'win32' ? 56 : 64;
 }
 
-function wrapSegments(prefix, segments, maxWidth) {
-  const width = Math.max(20, Number(maxWidth || 0));
-  const lines = [];
-  let current = prefix;
-
-  for (const segment of segments) {
-    const separator = current && current !== prefix ? ' | ' : ' ';
-    const candidate = current ? `${current}${separator}${segment}` : segment;
-
-    if (getDisplayWidth(candidate) <= width) {
-      current = candidate;
-      continue;
-    }
-
-    if (current) {
-      lines.push(current);
-    }
-    current = segment;
-  }
-
-  if (current) {
-    lines.push(current);
-  }
-
-  return lines.join('\n');
-}
-
 function buildStatusVariants(input, callCount) {
   const model = normalizeModelName(input?.model?.display_name, input?.model?.id);
   const totalInputTokens = getTotalInputTokens(input);
@@ -179,22 +152,23 @@ function buildStatusVariants(input, callCount) {
   ];
 
   return [
-    {
-      singleLine: `Claude 监控: ${verboseSegments.join(' | ')}`,
-      wrapped: wrapSegments('Claude 监控:', verboseSegments, getTargetWidth()),
-    },
-    {
-      singleLine: `监控: ${compactSegments.join(' | ')}`,
-      wrapped: wrapSegments('监控:', compactSegments, getTargetWidth()),
-    },
-    {
-      singleLine: `监控: ${compactSegments.join(' | ')}`,
-      wrapped: wrapSegments('监控:', compactSegments, Math.max(26, getTargetWidth() - 8)),
-    },
-    {
-      singleLine: compactSegments.join(' | '),
-      wrapped: wrapSegments('', compactSegments, Math.max(20, getTargetWidth() - 12)),
-    },
+    `Claude 监控: ${verboseSegments.join(' | ')}`,
+    `监控: ${compactSegments.join(' | ')}`,
+    `监控: ${
+      [
+        `调用${callCount}次`,
+        `模型${compactModel}`,
+        `输入${formatCompactNumber(totalInputTokens)}`,
+        `输出${formatCompactNumber(totalOutputTokens)}`,
+        `上下文${formatPercent(usedPercentage)}`,
+      ].join(' | ')
+    }`,
+    [
+      `调用${callCount}次`,
+      `模型${compactModel}`,
+      `输入${formatCompactNumber(totalInputTokens)}`,
+      `输出${formatCompactNumber(totalOutputTokens)}`,
+    ].join(' | '),
   ];
 }
 
@@ -203,16 +177,16 @@ function buildStatusText(input, callCount) {
   const width = getTargetWidth();
   const variants = buildStatusVariants(input, callCount);
 
-  if (mode === 'full') return variants[0].singleLine;
-  if (mode === 'compact') return variants[1].wrapped;
-  if (mode === 'mini') return variants[3].wrapped;
+  if (mode === 'full') return variants[0];
+  if (mode === 'compact') return variants[1];
+  if (mode === 'mini') return variants[3];
 
   for (const variant of variants) {
-    if (getDisplayWidth(variant.singleLine) <= width) {
-      return variant.singleLine;
+    if (getDisplayWidth(variant) <= width) {
+      return variant;
     }
   }
-  return variants[1].wrapped;
+  return variants[variants.length - 1];
 }
 
 async function main() {
