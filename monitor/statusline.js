@@ -162,14 +162,14 @@ function buildStatusVariants(input, callCount) {
         `模型${compactModel}`,
         `输入${formatCompactNumber(totalInputTokens)}`,
         `输出${formatCompactNumber(totalOutputTokens)}`,
-        `费用${formatUsd(totalCost)}`,
+        `上下文${formatPercent(usedPercentage)}`,
       ].join(' | ')
     }`,
     [
       `调用${callCount}次`,
-      `模型${compactModel}`,
       `输入${formatCompactNumber(totalInputTokens)}`,
       `输出${formatCompactNumber(totalOutputTokens)}`,
+      `上下文${formatPercent(usedPercentage)}`,
     ].join(' | '),
   ];
 }
