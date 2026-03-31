@@ -45,9 +45,35 @@ function normalizeModelName(displayName, modelId) {
     .trim();
 }
 
+function getDisplayWidth(value) {
+  let width = 0;
+  for (const char of Array.from(String(value || ''))) {
+    width += char.charCodeAt(0) > 255 ? 2 : 1;
+  }
+  return width;
+}
+
+function truncateDisplayText(value, maxWidth) {
+  const text = String(value || '');
+  const limit = Number(maxWidth || 0);
+  if (!limit || getDisplayWidth(text) <= limit) return text;
+
+  let width = 0;
+  let output = '';
+  for (const char of Array.from(text)) {
+    const charWidth = char.charCodeAt(0) > 255 ? 2 : 1;
+    if (width + charWidth > Math.max(1, limit - 1)) break;
+    output += char;
+    width += charWidth;
+  }
+  return `${output}…`;
+}
+
 module.exports = {
   formatCompactNumber,
   formatUsd,
   formatPercent,
   normalizeModelName,
+  getDisplayWidth,
+  truncateDisplayText,
 };

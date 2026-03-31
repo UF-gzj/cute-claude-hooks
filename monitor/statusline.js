@@ -6,7 +6,14 @@
  */
 
 const { DEFAULT_STATUS_TEXT } = require('./constants');
-const { formatCompactNumber, formatPercent, formatUsd, normalizeModelName } = require('./formatters');
+const {
+  formatCompactNumber,
+  formatPercent,
+  formatUsd,
+  normalizeModelName,
+  getDisplayWidth,
+  truncateDisplayText,
+} = require('./formatters');
 const { countModelCalls } = require('./transcript-counter');
 
 function readStdin() {
@@ -93,23 +100,95 @@ function getTotalCost(input) {
   return 0;
 }
 
-function buildStatusText(input, callCount) {
+function parsePositiveInt(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
+}
+
+function getPreferredMode() {
+  const mode = String(process.env.CLAUDE_HOOKS_STATUSLINE_MODE || 'auto').trim().toLowerCase();
+  if (['auto', 'full', 'compact', 'mini'].includes(mode)) return mode;
+  return 'auto';
+}
+
+function getTargetWidth() {
+  const explicitWidth = parsePositiveInt(process.env.CLAUDE_HOOKS_STATUSLINE_WIDTH);
+  if (explicitWidth) return explicitWidth;
+
+  const envColumns = parsePositiveInt(process.env.COLUMNS);
+  if (envColumns) return envColumns;
+
+  const stdoutColumns = parsePositiveInt(process.stdout?.columns);
+  if (stdoutColumns) return stdoutColumns;
+
+  // Claude Code 调 status line 时通常拿不到 tty 宽度。
+  // 这里默认按较窄终端处理，避免 PowerShell / CMD 中被右侧提示挤掉。
+  return process.platform === 'win32' ? 56 : 64;
+}
+
+function buildStatusVariants(input, callCount) {
   const model = normalizeModelName(input?.model?.display_name, input?.model?.id);
   const totalInputTokens = getTotalInputTokens(input);
   const totalOutputTokens = getTotalOutputTokens(input);
   const totalCost = getTotalCost(input);
   const usedPercentage = getUsedPercentage(input);
+  const fullModel = truncateDisplayText(model, 18);
+  const compactModel = truncateDisplayText(model, 12);
 
-  return `Claude 监控: ${
+  return [
+    `Claude 监控: ${
+      [
+        `调用 ${callCount} 次`,
+        `模型 ${fullModel}`,
+        `输入 ${formatCompactNumber(totalInputTokens)}`,
+        `输出 ${formatCompactNumber(totalOutputTokens)}`,
+        formatUsd(totalCost),
+        `上下文 ${formatPercent(usedPercentage)}`,
+      ].join(' | ')
+    }`,
+    `监控: ${
+      [
+        `${callCount}次`,
+        compactModel,
+        `入${formatCompactNumber(totalInputTokens)}`,
+        `出${formatCompactNumber(totalOutputTokens)}`,
+        formatUsd(totalCost),
+        formatPercent(usedPercentage),
+      ].join(' | ')
+    }`,
+    `监控 ${
+      [
+        `${callCount}次`,
+        compactModel,
+        `${formatCompactNumber(totalInputTokens)}/${formatCompactNumber(totalOutputTokens)}`,
+        formatUsd(totalCost),
+        formatPercent(usedPercentage),
+      ].join(' | ')
+    }`,
     [
       `调用 ${callCount} 次`,
-      `模型 ${model}`,
-      `输入 ${formatCompactNumber(totalInputTokens)}`,
-      `输出 ${formatCompactNumber(totalOutputTokens)}`,
+      compactModel,
+      `${formatCompactNumber(totalInputTokens)}/${formatCompactNumber(totalOutputTokens)}`,
       formatUsd(totalCost),
-      `上下文 ${formatPercent(usedPercentage)}`,
-    ].join(' | ')
-  }`;
+    ].join(' | '),
+  ];
+}
+
+function buildStatusText(input, callCount) {
+  const mode = getPreferredMode();
+  const variants = buildStatusVariants(input, callCount);
+
+  if (mode === 'full') return variants[0];
+  if (mode === 'compact') return variants[2];
+  if (mode === 'mini') return variants[3];
+
+  const width = getTargetWidth();
+  for (const variant of variants) {
+    if (getDisplayWidth(variant) <= width) {
+      return variant;
+    }
+  }
+  return variants[variants.length - 1];
 }
 
 async function main() {
@@ -136,6 +215,9 @@ module.exports = {
   getTotalInputTokens,
   getTotalOutputTokens,
   getUsedPercentage,
+  getTargetWidth,
+  getPreferredMode,
+  buildStatusVariants,
   main,
 };
 
