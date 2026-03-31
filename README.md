@@ -3,15 +3,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-orange.svg)](https://claude.ai/code)
 [![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#)
-[![Private Git](https://img.shields.io/badge/Install-Private%20Git-black.svg)](#)
+[![Public Git](https://img.shields.io/badge/Install-Public%20Git-black.svg)](#)
 
-> 关镇江原创私有增强版：让 Claude Code 拥有完整的中文体验！中文提示 + 界面汉化 + 中文监控状态栏
+> 关镇江原创增强版：让 Claude Code 拥有完整的中文体验！中文提示 + 界面汉化 + 中文监控状态栏
 
 > **💡 安装方式说明：**
-> - **统一安装策略**：使用 **私有 Git 仓库** 全局安装
+> - **统一安装策略**：使用 **公开 Git 仓库** 全局安装
 > - **启用方式**：安装完成后运行 `cute-claude-hooks-install`
 > - **恢复方式**：运行 `cute-claude-hooks-restore`
-> - **私有仓库地址**：`https://github.com/UF-gzj/cute-claude-hooks`
+> - **公开仓库地址**：`https://github.com/UF-gzj/cute-claude-hooks`
 > - **HTML 安装说明**：查看 [INSTALL_AND_USAGE.html](./INSTALL_AND_USAGE.html)
 
 ## 📸 效果预览
@@ -81,18 +81,21 @@
 
 ### 功能与安装方式对应表
 
-| 功能 | 私有 Git 安装 | 手动/脚本安装 |
+| 功能 | 公开 Git 安装 | 手动/脚本安装 |
 |------|:------------:|:------------:|
 | 📖 工具提示 Hook (tool-tips-post.sh) | ✅ | ✅ |
 | 📊 Claude 监控状态栏 | ✅ | ❌ 暂不支持 |
 | 🌐 界面汉化 (配置面板、斜杠命令等) | ✅ | ❌ 暂不支持 |
 
-> Claude 监控状态栏与界面汉化都需要通过安装脚本自动配置，目前仅支持私有 Git 安装后执行安装器。
+> Claude 监控状态栏与界面汉化都需要通过安装脚本自动配置，目前支持公开 Git 安装后执行安装器。
 
-### 方式一：私有 Git 安装（推荐）
+### 方式一：公开 Git 安装（推荐）
 
 ```bash
-# 从私有 Git 仓库全局安装
+# 从公开 Git 仓库全局安装（HTTPS，适合大多数人）
+npm install -g https://github.com/UF-gzj/cute-claude-hooks.git
+
+# 或者使用 SSH 安装
 npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git
 
 # 运行安装脚本，自动启用 Hook + 汉化 + Claude 监控状态栏
@@ -102,7 +105,7 @@ cute-claude-hooks-install
 cute-claude-hooks-restore
 ```
 
-**如果你使用 HTTPS Token：**
+**如果你需要带 Token 的 HTTPS 安装：**
 ```bash
 npm install -g git+https://<token>@github.com/UF-gzj/cute-claude-hooks.git
 ```
@@ -330,7 +333,7 @@ cute-claude-hooks/
 
 本项目使用 GitHub Actions 进行跨平台自动测试：
 
-私有仓库可按需接入你自己的 GitHub Actions / Gitea CI / 企业 CI。
+公开仓库可直接接入 GitHub Actions，也可按需接入 Gitea CI / 企业 CI。
 
 | 平台 | 状态 | 测试内容 |
 |-----|------|---------|
@@ -360,9 +363,9 @@ cute-claude-hooks/
 
 ---
 
-## 🤝 私有协作
+## 🤝 协作维护
 
-如果你在私有团队内继续维护这套工具，建议协作时重点关注：
+如果你在团队内继续维护这套工具，建议协作时重点关注：
 
 - 🌍 新的汉化词条
 - 🔧 新的命令解释

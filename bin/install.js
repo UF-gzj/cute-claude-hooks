@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Cute Claude Hooks - 私有增强版安装脚本
+ * Cute Claude Hooks - 原创增强版安装脚本
  * 安装中文提示钩子 + 界面汉化 + Claude 监控状态栏
  * 完整支持 Windows / macOS / Linux
  * Original author: 关镇江
@@ -853,7 +853,7 @@ function main() {
     console.log(`${CYAN}  如遇问题运行: cute-claude-hooks-install --verify${NC}`);
   }
 
-  console.log(`${CYAN}  私有安装提示: npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git${NC}`);
+  console.log(`${CYAN}  安装提示: npm install -g git+ssh://git@github.com/UF-gzj/cute-claude-hooks.git${NC}`);
   console.log(`${CYAN}  作者: 关镇江${NC}\n`);
 }
 
