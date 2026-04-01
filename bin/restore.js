@@ -24,6 +24,7 @@ const claudeDir = path.join(os.homedir(), '.claude');
 const settingsFile = path.join(claudeDir, 'settings.json');
 const monitorDir = path.join(claudeDir, 'monitor');
 const monitorStatusPath = '/.claude/monitor/statusline.js';
+const localizeBackupDir = path.join(claudeDir, 'localize', 'backups');
 const monitorFiles = [
   'constants.js',
   'formatters.js',
@@ -95,14 +96,23 @@ try {
 
   if (claudeCodeFound) {
     const npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
+    const packageJsonPath = path.join(npmRoot, pkgName, 'package.json');
     const cliPath = path.join(npmRoot, pkgName, 'cli.js');
     const cliBak = path.join(npmRoot, pkgName, 'cli.bak.js');
+    const packageJson = fs.existsSync(packageJsonPath)
+      ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+      : null;
+    const versionedBackup = packageJson && packageJson.version
+      ? path.join(localizeBackupDir, `cli-${packageJson.version}.bak.js`)
+      : null;
 
-    if (fs.existsSync(cliBak)) {
-      fs.copyFileSync(cliBak, cliPath);
+    if (versionedBackup && fs.existsSync(versionedBackup)) {
+      fs.copyFileSync(versionedBackup, cliPath);
       console.log(`${GREEN}已恢复为英文界面${NC}`);
+    } else if (fs.existsSync(cliBak)) {
+      console.log(`${YELLOW}仅发现旧版通用备份，已跳过恢复以避免覆盖当前升级后的版本${NC}`);
     } else {
-      console.log(`${YELLOW}未找到备份文件，可能已经是英文版${NC}`);
+      console.log(`${YELLOW}未找到当前版本备份，可能已经是英文版或尚未为该版本执行汉化${NC}`);
     }
   }
 } catch (err) {

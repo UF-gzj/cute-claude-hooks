@@ -550,7 +550,7 @@ function installLocalize() {
   let copiedAll = true;
 
   // 核心文件
-  const files = ['keyword.js', 'localize.js'];
+  const files = ['keyword.js', 'localize.js', 'description-map.js', 'localize-assets.js'];
 
   files.forEach(file => {
     const src = path.join(npmDir, 'localize', file);
@@ -575,13 +575,23 @@ function installLocalize() {
 
   try {
     const jsScript = path.join(localizeDir, 'localize.js');
+    const assetsScript = path.join(localizeDir, 'localize-assets.js');
+    let cliLocalized = false;
+
     if (fs.existsSync(jsScript)) {
       execSync(`node "${jsScript}"`, { stdio: 'inherit' });
-      return true;
+      cliLocalized = true;
     }
+
+    if (fs.existsSync(assetsScript)) {
+      execSync(`node "${assetsScript}"`, { stdio: 'inherit' });
+    }
+
+    return cliLocalized;
   } catch (err) {
     console.log(`${YELLOW}警告: 汉化过程中遇到问题${NC}`);
     console.log(`${YELLOW}可手动执行: node ~/.claude/localize/localize.js${NC}`);
+    console.log(`${YELLOW}命令/技能描述可手动执行: node ~/.claude/localize/localize-assets.js${NC}`);
   }
 
   return false;
