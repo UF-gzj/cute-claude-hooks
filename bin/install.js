@@ -597,6 +597,37 @@ function installLocalize() {
   return false;
 }
 
+function installAssetsOnly() {
+  console.log(`\n${MAGENTA}[2/2] 刷新命令与技能描述汉化...${NC}\n`);
+
+  ensureDir(localizeDir);
+  const files = ['description-map.js', 'localize-assets.js'];
+  let copiedAll = true;
+
+  for (const file of files) {
+    const src = path.join(npmDir, 'localize', file);
+    const dest = path.join(localizeDir, file);
+    if (!fs.existsSync(src) || !copyFile(src, dest)) {
+      copiedAll = false;
+    }
+  }
+
+  if (!copiedAll) {
+    console.log(`${RED}描述汉化文件复制不完整，跳过执行${NC}`);
+    return false;
+  }
+
+  try {
+    const assetsScript = path.join(localizeDir, 'localize-assets.js');
+    execSync(`node "${assetsScript}"`, { stdio: 'inherit' });
+    return true;
+  } catch (err) {
+    console.log(`${YELLOW}警告: 描述汉化刷新过程中遇到问题${NC}`);
+    console.log(`${YELLOW}可手动执行: node ~/.claude/localize/localize-assets.js${NC}`);
+    return false;
+  }
+}
+
 // ========== 诊断模式 ==========
 function runDiagnostics() {
   console.log(`${MAGENTA}==============================================${NC}`);
@@ -821,6 +852,11 @@ function main() {
     case '2':
       locOk = installLocalize();
       break;
+    case 'assets':
+    case 'descriptions':
+    case '4':
+      locOk = installAssetsOnly();
+      break;
     case 'all':
     default:
       hookOk = installHook();
@@ -847,7 +883,14 @@ function main() {
 
   if (locOk) {
     console.log(`${GREEN}  汉化: 已安装${NC}`);
-  } else if (mode === 'all' || mode === 'localize' || mode === '2') {
+  } else if (
+    mode === 'all'
+    || mode === 'localize'
+    || mode === '2'
+    || mode === 'assets'
+    || mode === 'descriptions'
+    || mode === '4'
+  ) {
     console.log(`${RED}  汉化: 安装失败或有问题${NC}`);
   }
 

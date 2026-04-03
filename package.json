@@ -1,6 +1,6 @@
 {
   "name": "cute-claude-hooks",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "关镇江原创增强版：Claude Code 中文提示、界面汉化与监控状态栏",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,8 @@
   },
   "bin": {
     "cute-claude-hooks-install": "bin/install.js",
-    "cute-claude-hooks-restore": "bin/restore.js"
+    "cute-claude-hooks-restore": "bin/restore.js",
+    "cute-claude-hooks-refresh-assets": "bin/refresh-assets.js"
   },
   "files": [
     "bin/",
