@@ -162,6 +162,7 @@
         <ul>
           <li>给 Claude Code 的工具调用增加中文提示，让每次读文件、写文件、执行命令都更容易理解。</li>
           <li>给 Claude Code 界面做汉化，把常见配置、命令说明、提示文案转成中文。</li>
+          <li>支持单独刷新 <code>/命令</code> 和 skills 的介绍汉化，避免插件更新或工作区变化后说明重新变回英文。</li>
           <li>新增中文监控状态栏，实时显示调用次数、当前模型、输入 Token、输出 Token、费用和上下文占用。</li>
           <li>保持原项目的一键安装方式，安装后继续通过 <code>cute-claude-hooks-install</code> 和 <code>cute-claude-hooks-restore</code> 管理。</li>
         </ul>
@@ -238,6 +239,7 @@ cute-claude-hooks-install</code></pre>
         <li>复制中文提示 Hook 到 <code>~/.claude/hooks/</code>。</li>
         <li>修改 <code>~/.claude/settings.json</code>，自动配置 Claude Code 的 hooks。</li>
         <li>复制汉化脚本到 <code>~/.claude/localize/</code>，并对 Claude Code CLI 做汉化补丁。</li>
+        <li>扫描工作区命令和插件缓存，把 <code>/命令</code> 与 skills 的 <code>description</code> 说明尽可能刷新成中文。</li>
         <li>复制监控脚本到 <code>~/.claude/monitor/</code>，自动写入 <code>statusLine</code>。</li>
       </ul>
       <pre><code>Claude 监控: 调用 12 次 | 模型 Sonnet 4 | 输入 124k | 输出 16k | $0.34 | 上下文 41%</code></pre>
@@ -250,9 +252,20 @@ cute-claude-hooks-install</code></pre>
         <li>仅安装中文提示 Hook：<code>cute-claude-hooks-install hook</code></li>
         <li>仅安装界面汉化：<code>cute-claude-hooks-install localize</code></li>
         <li>仅安装监控状态栏：<code>cute-claude-hooks-install monitor</code></li>
+        <li>仅刷新 <code>/命令</code> 和 skills 的介绍汉化：<code>cute-claude-hooks-refresh-assets</code></li>
         <li>诊断当前安装：<code>cute-claude-hooks-install --verify</code></li>
         <li>恢复英文界面并移除监控：<code>cute-claude-hooks-restore</code></li>
       </ul>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <h2>升级与刷新</h2>
+      <p>如果你已经安装过旧版，建议先升级全局包，再按需要刷新汉化内容。</p>
+      <pre><code>npm install -g https://github.com/UF-gzj/cute-claude-hooks/archive/refs/heads/master.tar.gz --force
+cute-claude-hooks-install localize</code></pre>
+      <div class="tip">
+        如果只是发现 <code>/命令</code> 或 skills 的介绍重新变回英文，不需要整包重装，直接执行 <code>cute-claude-hooks-refresh-assets</code> 即可。
+      </div>
     </section>
 
     <section class="card" style="margin-top: 18px;">
@@ -270,6 +283,7 @@ cute-claude-hooks-install</code></pre>
       <ul>
         <li>这是公开仓库安装方案，任何能访问 GitHub 的环境都可以直接下载安装。</li>
         <li>如果安装后没有生效，先重启 Claude Code，再运行 <code>cute-claude-hooks-install --verify</code> 排查。</li>
+        <li>如果只是命令说明或 skills 介绍变回英文，优先运行 <code>cute-claude-hooks-refresh-assets</code> 重新刷新。</li>
         <li>Windows 用户建议提前安装 Git for Windows，确保 <code>bash</code> 可用。</li>
         <li>如果你需要完全回退，执行 <code>cute-claude-hooks-restore</code> 即可。</li>
       </ul>
