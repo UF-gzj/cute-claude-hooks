@@ -32,6 +32,15 @@ const hooksDir = path.join(claudeDir, 'hooks');
 const localizeDir = path.join(claudeDir, 'localize');
 const monitorDir = path.join(claudeDir, 'monitor');
 const settingsFile = path.join(claudeDir, 'settings.json');
+const powerShellProfileDir = path.join(homeDir, 'Documents', 'PowerShell');
+const windowsPowerShellProfileDir = path.join(homeDir, 'Documents', 'WindowsPowerShell');
+const powerShellProfiles = [
+  path.join(powerShellProfileDir, 'Microsoft.PowerShell_profile.ps1'),
+  path.join(windowsPowerShellProfileDir, 'Microsoft.PowerShell_profile.ps1'),
+];
+const profileBlockStart = '# >>> cute-claude-hooks auto-localize >>>';
+const profileBlockEnd = '# <<< cute-claude-hooks auto-localize <<<';
+const shimMarker = 'cute-claude-hooks-shim';
 
 // 获取 npm 包目录
 let npmDir;
@@ -117,6 +126,10 @@ function backupSettings() {
   }
 }
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function loadSettings() {
   if (!fs.existsSync(settingsFile)) {
     return {};
@@ -148,6 +161,213 @@ function normalizeForClaude(filePath) {
 function buildStatusLineCommand(scriptPath) {
   const normalizedPath = normalizeForClaude(scriptPath);
   return `node "${normalizedPath}"`;
+}
+
+function buildPowerShellAutoLocalizeBlock() {
+  return `${profileBlockStart}
+$env:DISABLE_INSTALLATION_CHECKS = "1"
+${profileBlockEnd}`;
+}
+
+function upsertPowerShellProfile(profilePath, block) {
+  ensureDir(path.dirname(profilePath));
+
+  let content = '';
+  if (fs.existsSync(profilePath)) {
+    content = fs.readFileSync(profilePath, 'utf8');
+  }
+
+  const blockRegex = new RegExp(
+    `${escapeRegex(profileBlockStart)}[\\s\\S]*?${escapeRegex(profileBlockEnd)}\\r?\\n?`,
+    'g',
+  );
+  const cleaned = content.replace(blockRegex, '').replace(/\s*$/, '');
+  const nextContent = cleaned
+    ? `${cleaned}\n\n${block}\n`
+    : `${block}\n`;
+
+  fs.writeFileSync(profilePath, nextContent, 'utf8');
+  console.log(`${GREEN}已写入 PowerShell 自动补汉化配置: ${profilePath}${NC}`);
+}
+
+function installPowerShellAutoLocalize() {
+  if (!IS_WIN) {
+    return true;
+  }
+
+  const block = buildPowerShellAutoLocalizeBlock();
+  try {
+    for (const profilePath of powerShellProfiles) {
+      upsertPowerShellProfile(profilePath, block);
+    }
+    return true;
+  } catch (err) {
+    console.log(`${YELLOW}写入 PowerShell 自动补汉化配置失败: ${err.message}${NC}`);
+    return false;
+  }
+}
+
+function getGlobalBinDir() {
+  try {
+    const prefix = execSync('npm prefix -g', { encoding: 'utf8' }).trim();
+    return IS_WIN ? prefix : path.join(prefix, 'bin');
+  } catch (err) {
+    return null;
+  }
+}
+
+function getShimPaths() {
+  const binDir = getGlobalBinDir();
+  if (!binDir) {
+    return null;
+  }
+
+  return {
+    binDir,
+    sh: path.join(binDir, 'claude'),
+    cmd: path.join(binDir, 'claude.cmd'),
+    ps1: path.join(binDir, 'claude.ps1'),
+    backupDir: path.join(localizeDir, 'shims'),
+  };
+}
+
+function isShimWrapped(content) {
+  return content.includes(shimMarker);
+}
+
+function ensureShimBackup(backupPath, currentPath, currentContent) {
+  ensureDir(path.dirname(backupPath));
+  if (!fs.existsSync(backupPath) && !isShimWrapped(currentContent)) {
+    fs.writeFileSync(backupPath, currentContent, 'utf8');
+  }
+}
+
+function buildClaudeCmdWrapper(ensureScriptWindowsPath) {
+  return `@ECHO off
+REM ${shimMarker}
+GOTO start
+:find_dp0
+SET dp0=%~dp0
+EXIT /b
+:start
+SETLOCAL
+CALL :find_dp0
+
+IF EXIST "%dp0%\\node.exe" (
+  SET "_prog=%dp0%\\node.exe"
+) ELSE (
+  SET "_prog=node"
+  SET PATHEXT=%PATHEXT:;.JS;=;%
+)
+
+"%_prog%" "${ensureScriptWindowsPath}" --quiet >NUL 2>NUL
+
+endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\node_modules\\@anthropic-ai\\claude-code\\cli.js" %*
+`;
+}
+
+function buildClaudePs1Wrapper(ensureScriptNormalized) {
+  return `#!/usr/bin/env pwsh
+# ${shimMarker}
+$basedir=Split-Path $MyInvocation.MyCommand.Definition -Parent
+
+$exe=""
+if ($PSVersionTable.PSVersion -lt "6.0" -or $IsWindows) {
+  $exe=".exe"
+}
+$ret=0
+if (Test-Path "$basedir/node$exe") {
+  & "$basedir/node$exe" "${ensureScriptNormalized}" --quiet *> $null
+  if ($MyInvocation.ExpectingInput) {
+    $input | & "$basedir/node$exe"  "$basedir/node_modules/@anthropic-ai/claude-code/cli.js" $args
+  } else {
+    & "$basedir/node$exe"  "$basedir/node_modules/@anthropic-ai/claude-code/cli.js" $args
+  }
+  $ret=$LASTEXITCODE
+} else {
+  & "node$exe" "${ensureScriptNormalized}" --quiet *> $null
+  if ($MyInvocation.ExpectingInput) {
+    $input | & "node$exe"  "$basedir/node_modules/@anthropic-ai/claude-code/cli.js" $args
+  } else {
+    & "node$exe"  "$basedir/node_modules/@anthropic-ai/claude-code/cli.js" $args
+  }
+  $ret=$LASTEXITCODE
+}
+exit $ret
+`;
+}
+
+function buildClaudeShWrapper(ensureScriptPosix) {
+  return `#!/bin/sh
+# ${shimMarker}
+basedir=$(dirname "$(echo "$0" | sed -e 's,\\\\,/,g')")
+
+case \`uname\` in
+    *CYGWIN*|*MINGW*|*MSYS*)
+        if command -v cygpath > /dev/null 2>&1; then
+            basedir=\`cygpath -w "$basedir"\`
+        fi
+    ;;
+esac
+
+node ${ensureScriptPosix} --quiet >/dev/null 2>&1 || true
+
+if [ -x "$basedir/node" ]; then
+  exec "$basedir/node"  "$basedir/node_modules/@anthropic-ai/claude-code/cli.js" "$@"
+else
+  exec node  "$basedir/node_modules/@anthropic-ai/claude-code/cli.js" "$@"
+fi
+`;
+}
+
+function installClaudeLaunchShims() {
+  const shimPaths = getShimPaths();
+  if (!shimPaths) {
+    console.log(`${YELLOW}未能确定全局 npm bin 目录，已跳过通用启动入口增强${NC}`);
+    return false;
+  }
+
+  ensureDir(shimPaths.backupDir);
+  const ensureScriptWindowsPath = path.join(localizeDir, 'ensure-localized.js');
+  const ensureScriptNormalized = normalizeForClaude(ensureScriptWindowsPath);
+  const ensureScriptPosix = '$HOME/.claude/localize/ensure-localized.js';
+
+  const wrappers = [
+    {
+      path: shimPaths.cmd,
+      backup: path.join(shimPaths.backupDir, 'claude.cmd'),
+      build: () => buildClaudeCmdWrapper(ensureScriptWindowsPath),
+    },
+    {
+      path: shimPaths.ps1,
+      backup: path.join(shimPaths.backupDir, 'claude.ps1'),
+      build: () => buildClaudePs1Wrapper(ensureScriptNormalized),
+    },
+    {
+      path: shimPaths.sh,
+      backup: path.join(shimPaths.backupDir, 'claude'),
+      build: () => buildClaudeShWrapper(ensureScriptPosix),
+    },
+  ];
+
+  let updatedAny = false;
+  for (const shim of wrappers) {
+    if (!fs.existsSync(shim.path)) {
+      continue;
+    }
+
+    const currentContent = fs.readFileSync(shim.path, 'utf8');
+    ensureShimBackup(shim.backup, shim.path, currentContent);
+
+    const wrapperContent = shim.build();
+    if (currentContent !== wrapperContent) {
+      fs.writeFileSync(shim.path, wrapperContent, 'utf8');
+      updatedAny = true;
+      console.log(`${GREEN}已增强 Claude 启动入口: ${shim.path}${NC}`);
+    }
+  }
+
+  return updatedAny;
 }
 
 /**
@@ -550,7 +770,7 @@ function installLocalize() {
   let copiedAll = true;
 
   // 核心文件
-  const files = ['keyword.js', 'localize.js', 'description-map.js', 'localize-assets.js'];
+  const files = ['keyword.js', 'localize.js', 'description-map.js', 'localize-assets.js', 'ensure-localized.js'];
 
   files.forEach(file => {
     const src = path.join(npmDir, 'localize', file);
@@ -585,6 +805,11 @@ function installLocalize() {
 
     if (fs.existsSync(assetsScript)) {
       execSync(`node "${assetsScript}"`, { stdio: 'inherit' });
+    }
+
+    if (cliLocalized) {
+      installPowerShellAutoLocalize();
+      installClaudeLaunchShims();
     }
 
     return cliLocalized;

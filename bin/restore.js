@@ -25,6 +25,13 @@ const settingsFile = path.join(claudeDir, 'settings.json');
 const monitorDir = path.join(claudeDir, 'monitor');
 const monitorStatusPath = '/.claude/monitor/statusline.js';
 const localizeBackupDir = path.join(claudeDir, 'localize', 'backups');
+const powerShellProfiles = [
+  path.join(os.homedir(), 'Documents', 'PowerShell', 'Microsoft.PowerShell_profile.ps1'),
+  path.join(os.homedir(), 'Documents', 'WindowsPowerShell', 'Microsoft.PowerShell_profile.ps1'),
+];
+const profileBlockStart = '# >>> cute-claude-hooks auto-localize >>>';
+const profileBlockEnd = '# <<< cute-claude-hooks auto-localize <<<';
+const shimBackupDir = path.join(claudeDir, 'localize', 'shims');
 const monitorFiles = [
   'constants.js',
   'formatters.js',
@@ -85,6 +92,66 @@ function cleanupMonitorFiles() {
   }
 }
 
+function cleanupPowerShellProfiles() {
+  const blockRegex = new RegExp(
+    `${profileBlockStart.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?${profileBlockEnd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\r?\\n?`,
+    'g',
+  );
+
+  for (const profilePath of powerShellProfiles) {
+    if (!fs.existsSync(profilePath)) {
+      continue;
+    }
+
+    try {
+      const content = fs.readFileSync(profilePath, 'utf8');
+      const cleaned = content.replace(blockRegex, '').replace(/\n{3,}/g, '\n\n').trimEnd();
+      if (cleaned !== content) {
+        const nextContent = cleaned ? `${cleaned}\n` : '';
+        fs.writeFileSync(profilePath, nextContent, 'utf8');
+        console.log(`${GREEN}已清理 PowerShell 自动补汉化配置: ${profilePath}${NC}`);
+      }
+    } catch (err) {
+      console.log(`${YELLOW}清理 PowerShell profile 时遇到问题: ${err.message}${NC}`);
+    }
+  }
+}
+
+function getGlobalBinDir() {
+  try {
+    const prefix = execSync('npm prefix -g', { encoding: 'utf8' }).trim();
+    return process.platform === 'win32' ? prefix : path.join(prefix, 'bin');
+  } catch {
+    return null;
+  }
+}
+
+function restoreClaudeLaunchShims() {
+  const binDir = getGlobalBinDir();
+  if (!binDir || !fs.existsSync(shimBackupDir)) {
+    return;
+  }
+
+  const shimPairs = [
+    { backup: path.join(shimBackupDir, 'claude'), target: path.join(binDir, 'claude') },
+    { backup: path.join(shimBackupDir, 'claude.cmd'), target: path.join(binDir, 'claude.cmd') },
+    { backup: path.join(shimBackupDir, 'claude.ps1'), target: path.join(binDir, 'claude.ps1') },
+  ];
+
+  for (const shim of shimPairs) {
+    if (!fs.existsSync(shim.backup)) {
+      continue;
+    }
+
+    try {
+      fs.copyFileSync(shim.backup, shim.target);
+      console.log(`${GREEN}已恢复 Claude 启动入口: ${shim.target}${NC}`);
+    } catch (err) {
+      console.log(`${YELLOW}恢复 Claude 启动入口时遇到问题: ${err.message}${NC}`);
+    }
+  }
+}
+
 let claudeCodeFound = true;
 
 try {
@@ -122,5 +189,7 @@ try {
 
 cleanupMonitorSettings();
 cleanupMonitorFiles();
+cleanupPowerShellProfiles();
+restoreClaudeLaunchShims();
 
 console.log(`\n${MAGENTA}请重启 Claude Code 使更改生效${NC}\n`);

@@ -41,6 +41,8 @@ module.exports = {
   'Deprecated - use the superpowers:brainstorming skill instead': '已弃用，请改用 superpowers:brainstorming 技能',
   'Deprecated - use the superpowers:executing-plans skill instead': '已弃用，请改用 superpowers:executing-plans 技能',
   'Deprecated - use the superpowers:writing-plans skill instead': '已弃用，请改用 superpowers:writing-plans 技能',
+  'You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.':
+    '在任何创意类工作开始前都必须先使用，包括创建功能、构建组件、添加能力或修改行为；它会在实现前先梳理用户意图、需求与设计。',
   'Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies':
     '当面对 2 个以上彼此独立、无需共享状态或串行依赖的任务时使用',
   'Use when you have a written implementation plan to execute in a separate session with review checkpoints':
