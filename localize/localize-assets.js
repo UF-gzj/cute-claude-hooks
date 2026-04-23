@@ -287,8 +287,10 @@ function resolveTargetDirs(argv) {
     return explicitTargets;
   }
 
-  const pluginCacheDir = path.join(os.homedir(), '.claude', 'plugins', 'cache');
-  return uniq([pluginCacheDir, ...detectWorkspaceCommandDirs()]);
+  const pluginRootDir = path.join(os.homedir(), '.claude', 'plugins');
+  const pluginCacheDir = path.join(pluginRootDir, 'cache');
+  const pluginMarketplacesDir = path.join(pluginRootDir, 'marketplaces');
+  return uniq([pluginCacheDir, pluginMarketplacesDir, ...detectWorkspaceCommandDirs()]);
 }
 
 function main() {
@@ -308,7 +310,8 @@ function main() {
     }
     console.log(`${CYAN}扫描目录:${NC} ${target}`);
     let files = walkMarkdownFiles(target);
-    if (target.replace(/\\/g, '/').endsWith('/plugins/cache')) {
+    const normalizedTarget = target.replace(/\\/g, '/');
+    if (normalizedTarget.includes('/.claude/plugins/')) {
       files = files.filter(isRelevantPluginMarkdown);
     }
     for (const file of files) {

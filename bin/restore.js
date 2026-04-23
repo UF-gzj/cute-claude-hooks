@@ -1,11 +1,5 @@
 #!/usr/bin/env node
 
-/**
- * Cute Claude Hooks - 私有增强版恢复脚本
- * 恢复 Claude Code 英文界面并清理 Claude 监控状态栏
- * Original author: 关镇江
- */
-
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
@@ -14,10 +8,9 @@ const os = require('os');
 const MAGENTA = '\x1b[38;5;206m';
 const GREEN = '\x1b[0;32m';
 const YELLOW = '\x1b[0;33m';
-const RED = '\x1b[0;31m';
 const NC = '\x1b[0m';
 
-console.log(`\n${MAGENTA}恢复 Claude Code 英文界面...${NC}\n`);
+console.log(`\n${MAGENTA}Restoring Claude Code customizations...${NC}\n`);
 
 const pkgName = '@anthropic-ai/claude-code';
 const claudeDir = path.join(os.homedir(), '.claude');
@@ -55,10 +48,10 @@ function cleanupMonitorSettings() {
     ) {
       delete settings.statusLine;
       fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2), 'utf8');
-      console.log(`${GREEN}已移除 Claude 监控状态栏配置${NC}`);
+      console.log(`${GREEN}Removed Claude monitor statusLine from settings${NC}`);
     }
   } catch (err) {
-    console.log(`${YELLOW}清理 statusLine 配置时遇到问题: ${err.message}${NC}`);
+    console.log(`${YELLOW}Could not clean statusLine settings: ${err.message}${NC}`);
   }
 }
 
@@ -83,12 +76,10 @@ function cleanupMonitorFiles() {
     const remaining = fs.readdirSync(monitorDir, { withFileTypes: true });
     if (remaining.length === 0) {
       fs.rmSync(monitorDir, { recursive: true, force: true });
-      console.log(`${GREEN}已清理监控脚本目录: ${monitorDir}${NC}`);
-    } else {
-      console.log(`${YELLOW}监控目录中存在其他文件，已仅移除本项目安装内容${NC}`);
+      console.log(`${GREEN}Removed ${monitorDir}${NC}`);
     }
   } catch (err) {
-    console.log(`${YELLOW}清理监控目录时遇到问题: ${err.message}${NC}`);
+    console.log(`${YELLOW}Could not clean monitor files: ${err.message}${NC}`);
   }
 }
 
@@ -109,10 +100,10 @@ function cleanupPowerShellProfiles() {
       if (cleaned !== content) {
         const nextContent = cleaned ? `${cleaned}\n` : '';
         fs.writeFileSync(profilePath, nextContent, 'utf8');
-        console.log(`${GREEN}已清理 PowerShell 自动补汉化配置: ${profilePath}${NC}`);
+        console.log(`${GREEN}Cleaned PowerShell profile: ${profilePath}${NC}`);
       }
     } catch (err) {
-      console.log(`${YELLOW}清理 PowerShell profile 时遇到问题: ${err.message}${NC}`);
+      console.log(`${YELLOW}Could not clean PowerShell profile: ${err.message}${NC}`);
     }
   }
 }
@@ -139,57 +130,86 @@ function restoreClaudeLaunchShims() {
   ];
 
   for (const shim of shimPairs) {
-    if (!fs.existsSync(shim.backup)) {
+    if (!fs.existsSync(shim.backup) || !fs.existsSync(shim.target)) {
       continue;
     }
 
     try {
+      const targetStat = fs.lstatSync(shim.target);
+      if (process.platform !== 'win32' && targetStat.isSymbolicLink()) {
+        console.log(`${YELLOW}Skip restoring symlinked Claude launcher: ${shim.target}${NC}`);
+        continue;
+      }
+
       fs.copyFileSync(shim.backup, shim.target);
-      console.log(`${GREEN}已恢复 Claude 启动入口: ${shim.target}${NC}`);
+      console.log(`${GREEN}Restored Claude launcher shim: ${shim.target}${NC}`);
     } catch (err) {
-      console.log(`${YELLOW}恢复 Claude 启动入口时遇到问题: ${err.message}${NC}`);
+      console.log(`${YELLOW}Could not restore launcher shim ${shim.target}: ${err.message}${NC}`);
     }
   }
 }
 
-let claudeCodeFound = true;
+function restoreClaudeBinaryOrCli() {
+  try {
+    const log = execSync(`npm list -g ${pkgName} --depth=0`, { encoding: 'utf8' });
+    if (!log.trim().includes(pkgName)) {
+      console.log(`${YELLOW}Claude Code is not installed globally${NC}`);
+      return;
+    }
 
-try {
-  const log = execSync(`npm list -g ${pkgName} --depth=0`, { encoding: 'utf8' });
-  if (!log.trim().includes(pkgName)) {
-    claudeCodeFound = false;
-    console.log(`${YELLOW}未找到 Claude Code，将仅清理本项目配置和监控文件${NC}`);
-  }
-
-  if (claudeCodeFound) {
     const npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
-    const packageJsonPath = path.join(npmRoot, pkgName, 'package.json');
-    const cliPath = path.join(npmRoot, pkgName, 'cli.js');
-    const cliBak = path.join(npmRoot, pkgName, 'cli.bak.js');
-    const packageJson = fs.existsSync(packageJsonPath)
-      ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
-      : null;
-    const versionedBackup = packageJson && packageJson.version
-      ? path.join(localizeBackupDir, `cli-${packageJson.version}.bak.js`)
-      : null;
-
-    if (versionedBackup && fs.existsSync(versionedBackup)) {
-      fs.copyFileSync(versionedBackup, cliPath);
-      console.log(`${GREEN}已恢复为英文界面${NC}`);
-    } else if (fs.existsSync(cliBak)) {
-      console.log(`${YELLOW}仅发现旧版通用备份，已跳过恢复以避免覆盖当前升级后的版本${NC}`);
-    } else {
-      console.log(`${YELLOW}未找到当前版本备份，可能已经是英文版或尚未为该版本执行汉化${NC}`);
+    const packageDir = path.join(npmRoot, pkgName);
+    const packageJsonPath = path.join(packageDir, 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+      console.log(`${YELLOW}Claude Code package.json is missing${NC}`);
+      return;
     }
+
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    const version = packageJson.version || 'unknown';
+    const cliPath = path.join(packageDir, 'cli.js');
+    const cliBak = path.join(packageDir, 'cli.bak.js');
+    const versionedCliBackup = path.join(localizeBackupDir, `cli-${version}.bak.js`);
+    const binPath = path.join(packageDir, 'bin', 'claude.exe');
+    const versionedBinBackup = path.join(localizeBackupDir, `claude-${version}.bak.exe`);
+    const binaryManifest = path.join(localizeBackupDir, `claude-${version}.manifest.json`);
+
+    if (fs.existsSync(cliPath)) {
+      if (fs.existsSync(versionedCliBackup)) {
+        fs.copyFileSync(versionedCliBackup, cliPath);
+        console.log(`${GREEN}Restored legacy cli.js from versioned backup${NC}`);
+      } else if (fs.existsSync(cliBak)) {
+        fs.copyFileSync(cliBak, cliPath);
+        console.log(`${GREEN}Restored legacy cli.js from cli.bak.js${NC}`);
+      } else {
+        console.log(`${YELLOW}No legacy cli.js backup found${NC}`);
+      }
+      return;
+    }
+
+    if (fs.existsSync(binPath)) {
+      if (fs.existsSync(versionedBinBackup)) {
+        fs.copyFileSync(versionedBinBackup, binPath);
+        if (fs.existsSync(binaryManifest)) {
+          fs.rmSync(binaryManifest, { force: true });
+        }
+        console.log(`${GREEN}Restored native Claude binary from versioned backup${NC}`);
+      } else {
+        console.log(`${YELLOW}No native binary backup found for this Claude Code version${NC}`);
+      }
+      return;
+    }
+
+    console.log(`${YELLOW}Unsupported Claude Code package layout${NC}`);
+  } catch (err) {
+    console.log(`${YELLOW}Could not restore Claude Code package: ${err.message}${NC}`);
   }
-} catch (err) {
-  claudeCodeFound = false;
-  console.log(`${YELLOW}恢复 Claude Code 英文界面时遇到问题，将继续清理本项目配置: ${err.message}${NC}`);
 }
 
+restoreClaudeBinaryOrCli();
 cleanupMonitorSettings();
 cleanupMonitorFiles();
 cleanupPowerShellProfiles();
 restoreClaudeLaunchShims();
 
-console.log(`\n${MAGENTA}请重启 Claude Code 使更改生效${NC}\n`);
+console.log(`\n${MAGENTA}Claude Code restore complete.${NC}\n`);

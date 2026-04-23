@@ -327,7 +327,6 @@ function installClaudeLaunchShims() {
     return false;
   }
 
-  ensureDir(shimPaths.backupDir);
   const ensureScriptWindowsPath = path.join(localizeDir, 'ensure-localized.js');
   const ensureScriptNormalized = normalizeForClaude(ensureScriptWindowsPath);
   const ensureScriptPosix = '$HOME/.claude/localize/ensure-localized.js';
@@ -351,12 +350,30 @@ function installClaudeLaunchShims() {
   ];
 
   let updatedAny = false;
+  let backupDirReady = false;
   for (const shim of wrappers) {
     if (!fs.existsSync(shim.path)) {
       continue;
     }
 
+    let shimStat;
+    try {
+      shimStat = fs.lstatSync(shim.path);
+    } catch (err) {
+      console.log(`${YELLOW}无法读取 Claude 启动入口，已跳过: ${shim.path} - ${err.message}${NC}`);
+      continue;
+    }
+
+    if (!IS_WIN && shimStat.isSymbolicLink()) {
+      console.log(`${YELLOW}检测到符号链接启动入口，已跳过增强: ${shim.path}${NC}`);
+      continue;
+    }
+
     const currentContent = fs.readFileSync(shim.path, 'utf8');
+    if (!backupDirReady) {
+      ensureDir(shimPaths.backupDir);
+      backupDirReady = true;
+    }
     ensureShimBackup(shim.backup, shim.path, currentContent);
 
     const wrapperContent = shim.build();
@@ -770,7 +787,7 @@ function installLocalize() {
   let copiedAll = true;
 
   // 核心文件
-  const files = ['keyword.js', 'localize.js', 'description-map.js', 'localize-assets.js', 'ensure-localized.js'];
+  const files = ['keyword.js', 'localize.js', 'description-map.js', 'localize-assets.js', 'ensure-localized.js', 'binary-overrides.js'];
 
   files.forEach(file => {
     const src = path.join(npmDir, 'localize', file);

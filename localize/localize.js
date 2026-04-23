@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-// localize.js - Claude Code npm 版汉化脚本
-// 仅处理 npm 全局安装的 @anthropic-ai/claude-code，不修改原生安装通道。
-// License: MIT
+// localize.js - supports both legacy cli.js and Claude Code 2.1.113+ native binaries
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const crypto = require('crypto');
 const { execSync } = require('child_process');
 
 const MAGENTA = '\x1b[38;5;206m';
@@ -18,11 +17,11 @@ const NC = '\x1b[0m';
 const PKG_NAME = '@anthropic-ai/claude-code';
 const LOCALIZED_MARKER = 'cute-claude-hooks-localized';
 const LEGACY_TRANSLATION_MARKERS = [
-  '欢迎回来!',
-  '自动压缩',
-  '最近活动记录',
-  '深度思考模式',
-  '使用 /theme 更改颜色主题',
+  '!',
+  '',
+  '',
+  '',
+  ' /theme ',
 ];
 
 function ensureDir(dirPath) {
@@ -31,11 +30,15 @@ function ensureDir(dirPath) {
   }
 }
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function sha256Buffer(buf) {
+  return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
-function getCliInfo() {
+function execText(command) {
+  return execSync(command, { encoding: 'utf8' }).trim();
+}
+
+function getClaudeInstallInfo() {
   let npmRoot;
 
   try {
@@ -43,55 +46,74 @@ function getCliInfo() {
     if (!log.trim().includes(PKG_NAME)) {
       throw new Error('npm package not found');
     }
-    npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
+    npmRoot = execText('npm root -g');
   } catch (error) {
-    console.log(`${RED}未检测到 npm 全局安装的 Claude Code${NC}`);
-    console.log(`${YELLOW}界面汉化当前仅支持 npm 版，请先执行: npm install -g ${PKG_NAME}${NC}`);
+    console.log(`${RED}Could not find Claude Code npm package${NC}`);
+    console.log(`${YELLOW}Install with: npm install -g ${PKG_NAME}${NC}`);
     process.exit(1);
   }
 
   const packageDir = path.join(npmRoot, PKG_NAME);
-  const cliPath = path.join(packageDir, 'cli.js');
   const packageJsonPath = path.join(packageDir, 'package.json');
-  const legacyBackupPath = path.join(packageDir, 'cli.bak.js');
-
-  if (!fs.existsSync(cliPath) || !fs.existsSync(packageJsonPath)) {
-    console.log(`${RED}找不到 npm 版 Claude Code 的 cli.js 或 package.json${NC}`);
+  if (!fs.existsSync(packageJsonPath)) {
+    console.log(`${RED}Claude Code package.json is missing${NC}`);
     process.exit(1);
   }
 
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const version = packageJson.version || 'unknown';
-
+  const cliPath = path.join(packageDir, 'cli.js');
+  const binPath = path.join(packageDir, 'bin', 'claude.exe');
   const backupRoot = path.join(os.homedir(), '.claude', 'localize', 'backups');
   ensureDir(backupRoot);
-  const versionedBackupPath = path.join(backupRoot, `cli-${version}.bak.js`);
 
-  return {
-    cliPath,
-    version,
-    legacyBackupPath,
-    versionedBackupPath,
-  };
+  if (fs.existsSync(cliPath)) {
+    return {
+      mode: 'legacy',
+      version,
+      packageDir,
+      packageJsonPath,
+      cliPath,
+      legacyBackupPath: path.join(packageDir, 'cli.bak.js'),
+      versionedBackupPath: path.join(backupRoot, `cli-${version}.bak.js`),
+      manifestPath: path.join(backupRoot, `cli-${version}.manifest.json`),
+    };
+  }
+
+  if (fs.existsSync(binPath)) {
+    return {
+      mode: 'native',
+      version,
+      packageDir,
+      packageJsonPath,
+      binPath,
+      versionedBackupPath: path.join(backupRoot, `claude-${version}.bak.exe`),
+      manifestPath: path.join(backupRoot, `claude-${version}.manifest.json`),
+    };
+  }
+
+  console.log(`${RED}Unsupported Claude Code package layout${NC}`);
+  process.exit(1);
 }
 
-function isLocalized(content) {
-  return content.includes(LOCALIZED_MARKER) || LEGACY_TRANSLATION_MARKERS.some(marker => content.includes(marker));
+function isLegacyLocalized(content) {
+  return content.includes(LOCALIZED_MARKER)
+    || LEGACY_TRANSLATION_MARKERS.some((marker) => content.includes(marker));
 }
 
-function ensureVersionedBackup(cliInfo) {
-  const { cliPath, version, legacyBackupPath, versionedBackupPath } = cliInfo;
+function ensureLegacyBackup(info) {
+  const { cliPath, legacyBackupPath, versionedBackupPath, version } = info;
   if (fs.existsSync(versionedBackupPath)) {
     const versionedContent = fs.readFileSync(versionedBackupPath, 'utf8');
-    if (!isLocalized(versionedContent)) {
+    if (!isLegacyLocalized(versionedContent)) {
       return versionedBackupPath;
     }
 
     if (fs.existsSync(legacyBackupPath)) {
       const legacyContent = fs.readFileSync(legacyBackupPath, 'utf8');
-      if (!isLocalized(legacyContent)) {
+      if (!isLegacyLocalized(legacyContent)) {
         fs.copyFileSync(legacyBackupPath, versionedBackupPath);
-        console.log(`${GREEN}已用旧版英文备份修复当前版本备份: cli-${version}.bak.js${NC}`);
+        console.log(`${GREEN}Backed up cli-${version}.bak.js${NC}`);
         return versionedBackupPath;
       }
     }
@@ -100,34 +122,47 @@ function ensureVersionedBackup(cliInfo) {
   }
 
   const currentContent = fs.readFileSync(cliPath, 'utf8');
-
-  if (!isLocalized(currentContent)) {
+  if (!isLegacyLocalized(currentContent)) {
     fs.copyFileSync(cliPath, versionedBackupPath);
-    console.log(`${GREEN}已创建当前版本备份: cli-${version}.bak.js${NC}`);
+    console.log(`${GREEN}Backed up cli-${version}.bak.js${NC}`);
     return versionedBackupPath;
   }
 
   if (fs.existsSync(legacyBackupPath)) {
     const legacyContent = fs.readFileSync(legacyBackupPath, 'utf8');
-    if (!isLocalized(legacyContent)) {
+    if (!isLegacyLocalized(legacyContent)) {
       fs.copyFileSync(legacyBackupPath, versionedBackupPath);
-      console.log(`${GREEN}已迁移旧备份为版本备份: cli-${version}.bak.js${NC}`);
+      console.log(`${GREEN}Backed up cli-${version}.bak.js${NC}`);
       return versionedBackupPath;
     }
   }
 
-  console.log(`${RED}当前版本缺少原始英文备份，无法安全重建汉化${NC}`);
-  console.log(`${YELLOW}建议先重新安装当前 npm 版 Claude Code，再执行汉化${NC}`);
+  console.log(`${RED}Could not find an unlocalized cli.js backup${NC}`);
   process.exit(1);
 }
 
-function buildLocalizedContent(originalContent, keyword) {
+function ensureNativeBackup(info) {
+  const { binPath, versionedBackupPath, version } = info;
+  if (!fs.existsSync(versionedBackupPath)) {
+    fs.copyFileSync(binPath, versionedBackupPath);
+    console.log(`${GREEN}Backed up claude-${version}.bak.exe${NC}`);
+  }
+  return versionedBackupPath;
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildLegacyLocalizedContent(originalContent, keyword) {
   let content = originalContent;
   const entries = Object.entries(keyword);
   let totalReplacements = 0;
   let processedCount = 0;
 
   for (const [key, value] of entries) {
+    if (!value) continue;
+
     let replaced = false;
     let count = 0;
 
@@ -172,9 +207,6 @@ function buildLocalizedContent(originalContent, keyword) {
     if (replaced) {
       processedCount += 1;
       totalReplacements += count;
-      console.log(
-        `  ${GREEN}+${NC} ${key.substring(0, 50)}${key.length > 50 ? '...' : ''} ${YELLOW}->${NC} ${value.substring(0, 50)}${value.length > 50 ? '...' : ''}`,
-      );
     }
   }
 
@@ -195,40 +227,198 @@ function buildLocalizedContent(originalContent, keyword) {
   return { content, processedCount, totalReplacements, totalEntries: entries.length };
 }
 
-function localize(cliInfo) {
-  const keywordFile = path.join(__dirname, 'keyword.js');
-  const keyword = require(keywordFile);
-  const backupPath = ensureVersionedBackup(cliInfo);
+function fitUtf8(text, maxBytes) {
+  const candidates = [];
+  const seen = new Set();
+
+  function addCandidate(value) {
+    const normalized = (value || '').replace(/\r\n/g, '\n').trim();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    candidates.push(normalized);
+  }
+
+  addCandidate(text);
+  addCandidate(String(text).replace(/\r?\n/g, ' '));
+  addCandidate(String(text).replace(/[ \t]+/g, ''));
+  addCandidate(String(text).replace(/[\r\n]+/g, ' ').replace(/[ \t]{2,}/g, ' ').trim());
+  addCandidate(String(text).replace(/[“”‘’`]/g, '').replace(/[ \t]+/g, ' ').trim());
+  addCandidate(String(text).replace(/[，。！？；：]/g, '').replace(/[ \t]+/g, '').trim());
+
+  for (const candidate of candidates) {
+    if (Buffer.byteLength(candidate, 'utf8') <= maxBytes) {
+      return candidate;
+    }
+  }
+
+  const base = candidates[0] || '';
+  const ellipsis = Buffer.byteLength('…', 'utf8') <= maxBytes ? '…' : '';
+  const reserved = Buffer.byteLength(ellipsis, 'utf8');
+  let out = '';
+  for (const ch of Array.from(base)) {
+    const next = out + ch;
+    if (Buffer.byteLength(next, 'utf8') + reserved > maxBytes) {
+      break;
+    }
+    out = next;
+  }
+  if (!out) {
+    return '';
+  }
+  return ellipsis && Buffer.byteLength(out + ellipsis, 'utf8') <= maxBytes ? out + ellipsis : out;
+}
+
+function padBuffer(buf, size) {
+  if (buf.length === size) {
+    return buf;
+  }
+  if (buf.length > size) {
+    return buf.slice(0, size);
+  }
+  return Buffer.concat([buf, Buffer.alloc(size - buf.length, 0x20)]);
+}
+
+function loadBinaryOverrides() {
+  const overrideFile = path.join(__dirname, 'binary-overrides.js');
+  if (!fs.existsSync(overrideFile)) {
+    return {};
+  }
+  return require(overrideFile);
+}
+
+function buildBinaryEntries(keyword, overrides) {
+  const entries = [];
+  const sources = Object.keys(overrides || {});
+
+  for (const source of sources) {
+    const desired = overrides[source];
+    if (!desired || !source) continue;
+
+    const sourceBytes = Buffer.byteLength(source, 'utf8');
+    if (!sourceBytes) continue;
+
+    const fitted = fitUtf8(desired, sourceBytes);
+    if (!fitted) continue;
+
+    entries.push({
+      source,
+      desired,
+      fitted,
+      truncated: fitted !== desired,
+      sourceBytes,
+    });
+  }
+
+  return entries;
+}
+
+function buildBinaryLocalizedBuffer(originalBuffer, keyword, overrides) {
+  const working = Buffer.from(originalBuffer);
+  const entries = buildBinaryEntries(keyword, overrides);
+  let processedCount = 0;
+  let totalReplacements = 0;
+  let truncatedCount = 0;
+  let skippedCount = 0;
+
+  for (const entry of entries) {
+    const sourceBuf = Buffer.from(entry.source, 'utf8');
+    const replacementBuf = padBuffer(Buffer.from(entry.fitted, 'utf8'), sourceBuf.length);
+    let index = working.indexOf(sourceBuf);
+    let count = 0;
+
+    while (index !== -1) {
+      replacementBuf.copy(working, index);
+      count += 1;
+      index = working.indexOf(sourceBuf, index + sourceBuf.length);
+    }
+
+    if (count > 0) {
+      processedCount += 1;
+      totalReplacements += count;
+      if (entry.truncated) {
+        truncatedCount += 1;
+      }
+    } else {
+      skippedCount += 1;
+    }
+  }
+
+  return {
+    buffer: working,
+    processedCount,
+    totalReplacements,
+    truncatedCount,
+    skippedCount,
+    totalEntries: entries.length,
+  };
+}
+
+function localizeLegacy(info, keyword) {
+  const backupPath = ensureLegacyBackup(info);
   const originalContent = fs.readFileSync(backupPath, 'utf8');
+  const result = buildLegacyLocalizedContent(originalContent, keyword);
+  fs.writeFileSync(info.cliPath, result.content, 'utf8');
+  return result;
+}
 
-  const result = buildLocalizedContent(originalContent, keyword);
-  fs.writeFileSync(cliInfo.cliPath, result.content, 'utf8');
+function localizeNative(info, keyword) {
+  const backupPath = ensureNativeBackup(info);
+  const originalBuffer = fs.readFileSync(backupPath);
+  const overrides = loadBinaryOverrides();
+  const result = buildBinaryLocalizedBuffer(originalBuffer, keyword, overrides);
+  const originalHash = sha256Buffer(originalBuffer);
+  const patchedHash = sha256Buffer(result.buffer);
 
-  console.log('');
-  console.log(
-    `${MAGENTA}汉化完成! ${result.processedCount}/${result.totalEntries} 条匹配, ${result.totalReplacements} 处替换${NC}`,
-  );
+  const currentStat = fs.statSync(info.binPath);
+  const tempPath = `${info.binPath}.cute-claude-hooks.tmp`;
+  fs.writeFileSync(tempPath, result.buffer);
+  fs.chmodSync(tempPath, currentStat.mode);
+  fs.renameSync(tempPath, info.binPath);
+  fs.writeFileSync(info.manifestPath, JSON.stringify({
+    mode: 'native',
+    version: info.version,
+    targetPath: info.binPath,
+    backupPath,
+    originalSha256: originalHash,
+    patchedSha256: patchedHash,
+    patchedAt: new Date().toISOString(),
+    processedCount: result.processedCount,
+    totalReplacements: result.totalReplacements,
+    truncatedCount: result.truncatedCount,
+    skippedCount: result.skippedCount,
+  }, null, 2) + '\n', 'utf8');
+
+  return result;
 }
 
 function main() {
   console.log(`${MAGENTA}==============================================${NC}`);
-  console.log(`${MAGENTA}     Claude Code npm 版汉化工具${NC}`);
+  console.log(`${MAGENTA}     Claude Code localization${NC}`);
   console.log(`${MAGENTA}==============================================${NC}`);
   console.log('');
 
-  const cliInfo = getCliInfo();
-  console.log(`${CYAN}已安装版本: ${cliInfo.version}${NC}`);
-  console.log(`${GREEN}CLI 路径: ${cliInfo.cliPath}${NC}`);
-  console.log(`${GREEN}版本备份: ${cliInfo.versionedBackupPath}${NC}`);
-  console.log(`${YELLOW}说明: 仅汉化 npm 版，不修改 Claude Code 的自动升级通道${NC}`);
+  const info = getClaudeInstallInfo();
+  const keyword = require(path.join(__dirname, 'keyword.js'));
+
+  console.log(`${CYAN}Mode: ${info.mode}${NC}`);
+  console.log(`${CYAN}Version: ${info.version}${NC}`);
+  console.log(`${GREEN}Target: ${info.mode === 'legacy' ? info.cliPath : info.binPath}${NC}`);
+  console.log(`${GREEN}Backup: ${info.versionedBackupPath}${NC}`);
+  console.log('');
+  console.log(`${MAGENTA}Applying localization...${NC}`);
   console.log('');
 
-  console.log(`${MAGENTA}开始汉化...${NC}`);
+  const result = info.mode === 'legacy'
+    ? localizeLegacy(info, keyword)
+    : localizeNative(info, keyword);
+
   console.log('');
-
-  localize(cliInfo);
-
-  console.log(`${YELLOW}请重启 Claude Code 使汉化生效${NC}`);
+  console.log(`${MAGENTA}Localized ${result.processedCount}/${result.totalEntries} entries, ${result.totalReplacements} replacements${NC}`);
+  if (info.mode === 'native') {
+    console.log(`${YELLOW}Binary mode truncated ${result.truncatedCount} entries to fit fixed byte lengths${NC}`);
+    console.log(`${YELLOW}Binary mode skipped ${result.skippedCount} entries that were not found in the current binary${NC}`);
+  }
+  console.log(`${YELLOW}Claude Code localization complete${NC}`);
 }
 
 main();
