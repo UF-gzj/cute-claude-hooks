@@ -17,11 +17,10 @@ const NC = '\x1b[0m';
 const PKG_NAME = '@anthropic-ai/claude-code';
 const LOCALIZED_MARKER = 'cute-claude-hooks-localized';
 const LEGACY_TRANSLATION_MARKERS = [
-  '!',
-  '',
-  '',
-  '',
-  ' /theme ',
+  '管理认证',
+  '检查更新并安装',
+  '管理Claude Code插件',
+  '检查Claude Code自动更新器状态',
 ];
 
 function ensureDir(dirPath) {
