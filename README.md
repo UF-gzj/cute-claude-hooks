@@ -108,6 +108,10 @@ cute-claude-hooks-install
 cute-claude-hooks-restore
 ```
 
+> 当前版本已兼容 Claude Code `2.1.113+` 的原生二进制结构。
+> 对于老版本 `cli.js` 布局与新版本 `bin/claude.exe` 布局，安装器都会自动识别并选择对应的汉化路径。
+> 对于原生二进制版本，界面汉化会优先替换一组已验证安全的 UI / help 文案，并保留每天定时重刷能力，避免升级后汉化失效。
+
 **如果你需要带 Token 的 HTTPS 安装：**
 ```bash
 npm install -g git+https://<token>@github.com/UF-gzj/cute-claude-hooks.git
@@ -299,7 +303,24 @@ module.exports = {
 }
 ```
 
-然后重新执行 `node ~/.claude/localize/localize.js` 即可。
+如果你要补的是 Claude Code `2.1.113+` 原生二进制版本里的安全 UI / help 文案，请优先编辑：
+
+```javascript
+~/.claude/localize/binary-overrides.js
+```
+
+如果你要补的是插件、命令、skills、agents 的 `description` 汉化，请编辑：
+
+```javascript
+~/.claude/localize/description-map.js
+```
+
+修改后重新执行：
+
+```bash
+node ~/.claude/localize/localize.js
+node ~/.claude/localize/localize-assets.js
+```
 
 ---
 
@@ -313,10 +334,15 @@ cute-claude-hooks/
 ├── 🔧 tool-tips-post.sh      # 工具提示 Hook 脚本
 ├── 📁 bin/                   # 安装脚本
 │   ├── 📦 install.js         # 统一安装器（hooks + 汉化 + 监控）
-│   └── 📦 restore.js         # 恢复英文界面并清理监控
+│   ├── 📦 restore.js         # 恢复英文界面并清理监控
+│   └── 📦 refresh-assets.js  # 仅刷新命令/技能描述汉化
 ├── 📁 localize/              # 界面汉化模块
-│   ├── 📝 keyword.js         # 关键词翻译字典 (151词条)
-│   └── 🔧 localize.js        # Node.js 全局替换汉化引擎
+│   ├── 📝 keyword.js         # legacy cli.js 汉化词典
+│   ├── 📝 binary-overrides.js # 原生二进制安全覆盖词典
+│   ├── 📝 description-map.js # commands/skills/agents 描述汉化映射
+│   ├── 🔧 localize.js        # legacy + native 双布局汉化引擎
+│   ├── 🔧 localize-assets.js # 命令/技能/agent 描述汉化
+│   └── 🔧 ensure-localized.js # 启动前 / 定时任务重刷校验
 ├── 📁 monitor/               # Claude 监控状态栏模块
 │   ├── 📊 statusline.js      # 状态栏入口
 │   ├── 📈 transcript-counter.js # 调用次数统计
@@ -342,16 +368,17 @@ cute-claude-hooks/
 
 | 平台 | 状态 | 测试内容 |
 |-----|------|---------|
-| 🐧 Linux (Ubuntu) | ✅ 通过 | Hook脚本语法 + 界面汉化 (135词条) |
-| 🍎 macOS | ✅ 通过 | Hook脚本语法 + 界面汉化 (135词条) |
-| 🪟 Windows | ✅ 通过 | Hook脚本语法 + 界面汉化 (135词条) |
+| 🐧 Linux (Ubuntu) | ✅ 通过 | Hook脚本语法 + legacy / native 汉化逻辑 |
+| 🍎 macOS | ✅ 通过 | Hook脚本语法 + legacy / native 汉化逻辑 |
+| 🪟 Windows | ✅ 通过 | Hook脚本语法 + legacy / native 汉化逻辑 |
 
 ### 测试覆盖
 
 - ✅ **工具提示测试** - 验证 Hook 脚本输出中文提示
-- ✅ **界面汉化测试** - 验证 cli.js 成功翻译 151 个词条
-- ✅ **全局替换验证** - 匹配双引号/单引号/模板字符串中的所有键值
-- ✅ **备份文件检查** - 确保 cli.bak.js 备份存在
+- ✅ **界面汉化测试** - 验证 legacy `cli.js` 与 native `bin/claude.exe` 双布局识别与汉化
+- ✅ **原生二进制验证** - 仅替换已验证安全的 UI / help 文案，避免破坏运行时
+- ✅ **描述汉化验证** - 覆盖 commands / skills / agents 的 `description`
+- ✅ **备份文件检查** - 确保版本化备份与 manifest 存在
 
 ---
 
